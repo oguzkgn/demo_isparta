@@ -3,11 +3,14 @@ const bcrypt = require('bcryptjs');
 
 const sepetItemSchema = new mongoose.Schema({
   urun: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
-  adet: { type: Number, default: 1, min: 1 }
+  adet: { type: Number, default: 1, min: 1 },
+  beden: String,
+  renk: String
 }, { _id: false });
 
 const adresSchema = new mongoose.Schema({
   baslik: { type: String, default: 'Ev' },
+  tip: { type: String, enum: ['teslimat', 'fatura'], default: 'teslimat' },
   tamAd: String,
   telefon: String,
   adres: { type: String, required: true },
@@ -23,6 +26,10 @@ const userSchema = new mongoose.Schema({
   telefon: String,
   adres: String,
   konum: String,
+  rol: { type: String, enum: ['kullanici', 'satici', 'admin'], default: 'kullanici' },
+  satici: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' },
+  googleId: String,
+  appleId: String,
   adresler: [adresSchema],
   sepet: [sepetItemSchema],
   favoriler: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],

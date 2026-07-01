@@ -23,4 +23,13 @@ async function authZorunlu(req, res, next) {
   }
 }
 
-module.exports = { authZorunlu, tokenOlustur, JWT_SECRET };
+function rolZorunlu(...roller) {
+  return (req, res, next) => {
+    if (!req.user || !roller.includes(req.user.rol)) {
+      return res.status(403).json({ mesaj: 'Bu işlem için yetkiniz yok.' });
+    }
+    next();
+  };
+}
+
+module.exports = { authZorunlu, rolZorunlu, tokenOlustur, JWT_SECRET };

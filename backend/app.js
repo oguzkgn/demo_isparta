@@ -10,6 +10,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const Product = require('./models/Product');
 const { ISPARTA_KONUMLAR, KATEGORILER } = require('./data/constants');
+const { KATEGORI_AGACI } = require('./data/kategoriler');
 const { veritabaniBaglan } = require('./db');
 const authRoutes = require('./routes/auth');
 const sepetRoutes = require('./routes/sepet');
@@ -18,6 +19,9 @@ const siparisRoutes = require('./routes/siparis');
 const yorumRoutes = require('./routes/yorum');
 const araRoutes = require('./routes/ara');
 const kuponRoutes = require('./routes/kupon');
+const saticiRoutes = require('./routes/satici');
+const iadeRoutes = require('./routes/iade');
+const odemeRoutes = require('./routes/odeme');
 
 const app = express();
 const port = Number(process.env.PORT) || 5002;
@@ -45,28 +49,44 @@ app.use('/api/siparisler', siparisRoutes);
 app.use('/api/yorumlar', yorumRoutes);
 app.use('/api/ara', araRoutes);
 app.use('/api/kuponlar', kuponRoutes);
+app.use('/api/satici', saticiRoutes);
+app.use('/api/iade', iadeRoutes);
+app.use('/api/odeme', odemeRoutes);
 
 app.get('/api/konumlar', (_req, res) => res.json(ISPARTA_KONUMLAR));
 app.get('/api/kategoriler', (_req, res) => res.json(KATEGORILER));
+app.get('/api/kategoriler/agac', (_req, res) => res.json(KATEGORI_AGACI));
+
+app.get('/api/markalar', async (_req, res) => {
+  const markalar = await Product.distinct('marka');
+  res.json(markalar.filter(Boolean).sort());
+});
 
 app.get('/api/urunler', async (req, res) => {
   try {
     const filter = {};
     if (req.query.kategori) filter.kategori = req.query.kategori;
+    if (req.query.altKategori) filter.altKategori = req.query.altKategori;
     if (req.query.konum) filter.konum = req.query.konum;
+    if (req.query.marka) filter.marka = req.query.marka;
     if (req.query.oneCikan === 'true') filter.oneCikan = true;
+    if (req.query.minFiyat) filter.fiyat = { ...filter.fiyat, $gte: Number(req.query.minFiyat) };
+    if (req.query.maxFiyat) filter.fiyat = { ...filter.fiyat, $lte: Number(req.query.maxFiyat) };
+    if (req.query.minPuan) filter.puan = { $gte: Number(req.query.minPuan) };
+    if (req.query.beden) filter.bedenler = req.query.beden;
     if (req.query.ara) {
       filter.$or = [
         { ad: { $regex: req.query.ara, $options: 'i' } },
         { aciklama: { $regex: req.query.ara, $options: 'i' } },
-        { marka: { $regex: req.query.ara, $options: 'i' } }
+        { marka: { $regex: req.query.ara, $options: 'i' } },
+        { saticiAd: { $regex: req.query.ara, $options: 'i' } }
       ];
     }
     let sort = { createdAt: -1 };
     if (req.query.siralama === 'fiyatArtan') sort = { fiyat: 1 };
     if (req.query.siralama === 'fiyatAzalan') sort = { fiyat: -1 };
     if (req.query.siralama === 'puan') sort = { puan: -1 };
-    res.json(await Product.find(filter).sort(sort).lean());
+    res.json(await Product.find(filter).populate('satici', 'magazaAdi durum').sort(sort).lean());
   } catch {
     res.status(500).json({ mesaj: 'Ürünler getirilemedi.' });
   }
@@ -74,7 +94,7 @@ app.get('/api/urunler', async (req, res) => {
 
 app.get('/api/urunler/:id', async (req, res) => {
   try {
-    const urun = await Product.findById(req.params.id);
+    const urun = await Product.findById(req.params.id).populate('satici', 'magazaAdi durum telefon');
     if (!urun) return res.status(404).json({ mesaj: 'Ürün bulunamadı.' });
     res.json(urun);
   } catch {

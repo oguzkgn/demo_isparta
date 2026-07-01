@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import {
-  fetchAddresses, validateCoupon, createOrder, fetchCoupons
+  fetchAddresses, validateCoupon, createOrder, fetchCoupons, processPayment
 } from '../api/client';
 import { formatPrice } from '../utils/format';
 import Layout from '../components/Layout';
@@ -21,6 +21,7 @@ export default function CheckoutPage({ arama, setArama, kategori, setKategori, k
   const [odemeYontemi, setOdemeYontemi] = useState('kredi_karti');
   const [kuponlar, setKuponlar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(false);
+  const [kart, setKart] = useState({ kartNo: '', cvv: '', sonKullanma: '', taksit: 1 });
 
   useEffect(() => {
     if (!kullanici) { navigate('/giris'); return; }
@@ -51,6 +52,9 @@ export default function CheckoutPage({ arama, setArama, kategori, setKategori, k
   const siparisVer = async () => {
     setYukleniyor(true);
     try {
+      if (odemeYontemi === 'kredi_karti') {
+        await processPayment({ ...kart, tutar: genelToplam, taksit: kart.taksit });
+      }
       const secilen = adresler.find((a) => a._id === seciliAdres);
       const siparis = await createOrder({
         kuponKodu: indirim > 0 ? kuponKodu : undefined,
@@ -112,6 +116,20 @@ export default function CheckoutPage({ arama, setArama, kategori, setKategori, k
                   {{ kredi_karti: 'Kredi / Banka Kartı', kapida_odeme: 'Kapıda Ödeme', havale: 'Havale / EFT' }[y]}
                 </label>
               ))}
+              {odemeYontemi === 'kredi_karti' && (
+                <div className="kart-form">
+                  <label>Kart No<input value={kart.kartNo} onChange={(e) => setKart({ ...kart, kartNo: e.target.value })} placeholder="4242 4242 4242 4242" /></label>
+                  <div className="form-row">
+                    <label>SKT<input value={kart.sonKullanma} onChange={(e) => setKart({ ...kart, sonKullanma: e.target.value })} placeholder="12/28" /></label>
+                    <label>CVV<input value={kart.cvv} onChange={(e) => setKart({ ...kart, cvv: e.target.value })} placeholder="123" /></label>
+                  </div>
+                  <label>Taksit
+                    <select value={kart.taksit} onChange={(e) => setKart({ ...kart, taksit: Number(e.target.value) })}>
+                      {[1, 3, 6, 9].map((t) => <option key={t} value={t}>{t} Taksit</option>)}
+                    </select>
+                  </label>
+                </div>
+              )}
             </section>
           </div>
 

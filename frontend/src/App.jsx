@@ -11,6 +11,9 @@ import FavoritesPage from './pages/FavoritesPage';
 import OrdersPageWrapper from './pages/OrdersPageWrapper';
 import OrderDetailPage from './pages/OrderDetailPage';
 import CheckoutPage from './pages/CheckoutPage';
+import VendorApplyPage from './pages/VendorApplyPage';
+import SellerPanelPage from './pages/SellerPanelPage';
+import AdminReviewsPage from './pages/AdminReviewsPage';
 import './App.css';
 
 function AppRoutes() {
@@ -30,6 +33,9 @@ function AppRoutes() {
       <Route path="/siparisler" element={<OrdersPageWrapper {...shared} />} />
       <Route path="/siparisler/:id" element={<OrderDetailPage {...shared} />} />
       <Route path="/odeme" element={<CheckoutPage {...shared} />} />
+      <Route path="/satici/basvuru" element={<VendorApplyPage {...shared} />} />
+      <Route path="/satici/panel" element={<SellerPanelPage {...shared} />} />
+      <Route path="/admin/yorumlar" element={<AdminReviewsPage {...shared} />} />
     </Routes>
   );
 }

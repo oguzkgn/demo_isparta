@@ -5,21 +5,22 @@ const { authZorunlu, tokenOlustur } = require('../middleware/auth');
 
 const router = express.Router();
 
+function kullaniciDon(res, user, token) {
+  res.json({ kullanici: user, token });
+}
+
 router.post('/kayit', async (req, res) => {
   try {
     const { ad, soyad, email, sifre, telefon, adres, konum } = req.body;
     if (!ad || !soyad || !email || !sifre) {
       return res.status(400).json({ mesaj: 'Ad, soyad, e-posta ve şifre zorunludur.' });
     }
-    if (sifre.length < 6) {
-      return res.status(400).json({ mesaj: 'Şifre en az 6 karakter olmalı.' });
+    if (sifre.length < 6) return res.status(400).json({ mesaj: 'Şifre en az 6 karakter olmalı.' });
+    if (await User.findOne({ email: email.toLowerCase() })) {
+      return res.status(409).json({ mesaj: 'Bu e-posta zaten kayıtlı.' });
     }
-    const mevcut = await User.findOne({ email: email.toLowerCase() });
-    if (mevcut) return res.status(409).json({ mesaj: 'Bu e-posta zaten kayıtlı.' });
-
     const user = await User.create({ ad, soyad, email, sifre, telefon, adres, konum });
-    const token = tokenOlustur(user._id);
-    res.status(201).json({ kullanici: user, token });
+    kullaniciDon(res, user, tokenOlustur(user._id));
   } catch {
     res.status(500).json({ mesaj: 'Kayıt oluşturulamadı.' });
   }
@@ -28,47 +29,106 @@ router.post('/kayit', async (req, res) => {
 router.post('/giris', async (req, res) => {
   try {
     const { email, sifre } = req.body;
-    if (!email || !sifre) {
-      return res.status(400).json({ mesaj: 'E-posta ve şifre gerekli.' });
-    }
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user || !(await user.sifreKontrol(sifre))) {
       return res.status(401).json({ mesaj: 'E-posta veya şifre hatalı.' });
     }
-    res.json({ kullanici: user, token: tokenOlustur(user._id) });
+    kullaniciDon(res, user, tokenOlustur(user._id));
   } catch {
     res.status(500).json({ mesaj: 'Giriş yapılamadı.' });
   }
 });
 
-router.get('/profil', authZorunlu, (req, res) => {
-  res.json(req.user);
+router.post('/google', async (req, res) => {
+  try {
+    const { email, ad, soyad, googleId } = req.body;
+    if (!email) return res.status(400).json({ mesaj: 'Google e-posta gerekli.' });
+    let user = await User.findOne({ $or: [{ email: email.toLowerCase() }, { googleId }] });
+    if (!user) {
+      user = await User.create({
+        ad: ad || 'Google', soyad: soyad || 'Kullanıcı',
+        email, sifre: Math.random().toString(36).slice(2),
+        googleId: googleId || `google_${Date.now()}`
+      });
+    } else if (!user.googleId) {
+      user.googleId = googleId || user.googleId;
+      await user.save();
+    }
+    kullaniciDon(res, user, tokenOlustur(user._id));
+  } catch {
+    res.status(500).json({ mesaj: 'Google girişi başarısız.' });
+  }
 });
+
+router.post('/apple', async (req, res) => {
+  try {
+    const { email, ad, soyad, appleId } = req.body;
+    const eposta = email || `apple_${appleId || Date.now()}@demo.local`;
+    let user = await User.findOne({ $or: [{ email: eposta.toLowerCase() }, { appleId }] });
+    if (!user) {
+      user = await User.create({
+        ad: ad || 'Apple', soyad: soyad || 'Kullanıcı',
+        email: eposta, sifre: Math.random().toString(36).slice(2),
+        appleId: appleId || `apple_${Date.now()}`
+      });
+    }
+    kullaniciDon(res, user, tokenOlustur(user._id));
+  } catch {
+    res.status(500).json({ mesaj: 'Apple girişi başarısız.' });
+  }
+});
+
+router.get('/profil', authZorunlu, (req, res) => res.json(req.user));
 
 router.put('/profil', authZorunlu, async (req, res) => {
   try {
     const { ad, soyad, telefon, adres, konum } = req.body;
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      { ad, soyad, telefon, adres, konum },
-      { new: true, runValidators: true }
-    ).select('-sifre');
+    const user = await User.findByIdAndUpdate(req.user._id, { ad, soyad, telefon, adres, konum }, { new: true }).select('-sifre');
     res.json(user);
   } catch {
     res.status(500).json({ mesaj: 'Profil güncellenemedi.' });
   }
 });
 
+router.put('/email', authZorunlu, async (req, res) => {
+  try {
+    const { email, sifre } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!(await user.sifreKontrol(sifre))) return res.status(401).json({ mesaj: 'Şifre hatalı.' });
+    if (await User.findOne({ email: email.toLowerCase(), _id: { $ne: user._id } })) {
+      return res.status(409).json({ mesaj: 'E-posta kullanımda.' });
+    }
+    user.email = email.toLowerCase();
+    await user.save();
+    res.json(user);
+  } catch {
+    res.status(500).json({ mesaj: 'E-posta güncellenemedi.' });
+  }
+});
+
+router.put('/telefon', authZorunlu, async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.user._id, { telefon: req.body.telefon }, { new: true }).select('-sifre');
+    res.json(user);
+  } catch {
+    res.status(500).json({ mesaj: 'Telefon güncellenemedi.' });
+  }
+});
+
+router.delete('/telefon', authZorunlu, async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.user._id, { telefon: '' }, { new: true }).select('-sifre');
+    res.json(user);
+  } catch {
+    res.status(500).json({ mesaj: 'Telefon silinemedi.' });
+  }
+});
+
 router.put('/sifre', authZorunlu, async (req, res) => {
   try {
     const { eskiSifre, yeniSifre } = req.body;
-    if (!eskiSifre || !yeniSifre || yeniSifre.length < 6) {
-      return res.status(400).json({ mesaj: 'Yeni şifre en az 6 karakter olmalı.' });
-    }
     const user = await User.findById(req.user._id);
-    if (!(await user.sifreKontrol(eskiSifre))) {
-      return res.status(401).json({ mesaj: 'Mevcut şifre hatalı.' });
-    }
+    if (!(await user.sifreKontrol(eskiSifre))) return res.status(401).json({ mesaj: 'Mevcut şifre hatalı.' });
     user.sifre = yeniSifre;
     await user.save();
     res.json({ mesaj: 'Şifre güncellendi.' });
@@ -95,9 +155,7 @@ router.get('/adresler', authZorunlu, async (req, res) => {
 router.post('/adresler', authZorunlu, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    if (req.body.varsayilan) {
-      user.adresler.forEach((a) => { a.varsayilan = false; });
-    }
+    if (req.body.varsayilan) user.adresler.forEach((a) => { a.varsayilan = false; });
     user.adresler.push(req.body);
     await user.save();
     res.status(201).json(user.adresler);

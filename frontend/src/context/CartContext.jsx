@@ -38,17 +38,18 @@ export function CartProvider({ children }) {
     }
   }, [sepet, kullanici]);
 
-  const sepeteEkle = async (urun) => {
+  const sepeteEkle = async (urun, opts = {}) => {
+    const { beden, renk, adet = 1 } = opts;
     if (kullanici) {
-      const data = await addToCart(urun._id);
-      setSepet(data.map((x) => ({ ...x.urun, adet: x.adet })));
+      const data = await addToCart(urun._id, adet, beden, renk);
+      setSepet(data.map((x) => ({ ...x.urun, adet: x.adet, beden: x.beden, renk: x.renk })));
     } else {
       setSepet((prev) => {
         const mevcut = prev.find((x) => x._id === urun._id);
         if (mevcut) {
-          return prev.map((x) => (x._id === urun._id ? { ...x, adet: x.adet + 1 } : x));
+          return prev.map((x) => (x._id === urun._id ? { ...x, adet: x.adet + adet } : x));
         }
-        return [...prev, { ...urun, adet: 1 }];
+        return [...prev, { ...urun, adet, beden, renk }];
       });
     }
   };

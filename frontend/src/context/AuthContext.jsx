@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { login as apiLogin, register as apiRegister, fetchProfile, deleteAccount as apiDeleteAccount } from '../api/client';
+import { login as apiLogin, register as apiRegister, loginGoogle, loginApple, fetchProfile, deleteAccount as apiDeleteAccount } from '../api/client';
 
 const AuthContext = createContext(null);
 
@@ -51,8 +51,22 @@ export function AuthProvider({ children }) {
     setKullanici(null);
   };
 
+  const googleGiris = async (email, ad, soyad) => {
+    const { kullanici: u, token } = await loginGoogle({ email, ad, soyad, googleId: `google_${email}` });
+    localStorage.setItem('demo-token', token);
+    setKullanici(u);
+    return u;
+  };
+
+  const appleGiris = async () => {
+    const { kullanici: u, token } = await loginApple({ appleId: `apple_${Date.now()}`, ad: 'Apple', soyad: 'Kullanıcı' });
+    localStorage.setItem('demo-token', token);
+    setKullanici(u);
+    return u;
+  };
+
   return (
-    <AuthContext.Provider value={{ kullanici, yukleniyor, girisYap, kayitOl, cikisYap, hesabiSil, oturumuYukle }}>
+    <AuthContext.Provider value={{ kullanici, yukleniyor, girisYap, kayitOl, googleGiris, appleGiris, cikisYap, hesabiSil, oturumuYukle }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { fetchOrder, cancelOrder } from '../api/client';
+import { fetchOrder, cancelOrder, createReturn } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice, DURUM_ETIKET } from '../utils/format';
 import Layout from '../components/Layout';
@@ -75,6 +75,16 @@ export default function OrderDetailPage({ arama, setArama, kategori, setKategori
             <p><small>{new Date(siparis.createdAt).toLocaleString('tr-TR')}</small></p>
             {!['kargoda', 'teslim', 'iptal'].includes(siparis.durum) && (
               <button type="button" className="delete-btn" onClick={iptalEt}>Siparişi İptal Et</button>
+            )}
+            {siparis.durum === 'teslim' && (
+              <button type="button" className="fav-btn" style={{ marginTop: '1rem' }} onClick={async () => {
+                const neden = prompt('İade nedeni:');
+                if (!neden) return;
+                try {
+                  const iade = await createReturn({ siparisId: siparis._id, neden });
+                  alert(`İade talebi oluşturuldu. Kod: ${iade.iadeKodu}`);
+                } catch (err) { alert(err.response?.data?.mesaj || 'İade oluşturulamadı'); }
+              }}>İade Talebi Oluştur</button>
             )}
           </div>
         )}

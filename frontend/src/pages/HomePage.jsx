@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchProducts, fetchCategories, fetchLocations, fetchRecent } from '../api/client';
+import { fetchProducts, fetchCategories, fetchLocations, fetchRecent, fetchBrands } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { formatPrice } from '../utils/format';
@@ -14,7 +14,7 @@ function ProductCard({ u, sepeteEkle }) {
         {u.resim || '🛍️'}
       </Link>
       <div className="product-body">
-        <div className="product-brand">{u.marka}</div>
+        <div className="product-brand">{u.marka} {u.saticiAd && <span className="seller-tag">· {u.saticiAd}</span>}</div>
         <Link to={`/urun/${u._id}`} className="product-title">{u.ad}</Link>
         <div className="product-location">📍 {u.konum}</div>
         <div className="product-rating">★ {u.puan?.toFixed(1)} ({u.yorumSayisi} yorum)</div>
@@ -39,10 +39,12 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
   const [konumlar, setKonumlar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [siralama, setSiralama] = useState('');
+  const [markalar, setMarkalar] = useState([]);
+  const [filtre, setFiltre] = useState({ marka: '', minFiyat: '', maxFiyat: '', minPuan: '' });
 
   useEffect(() => {
-    Promise.all([fetchCategories(), fetchLocations()])
-      .then(([k, l]) => { setKategoriler(k); setKonumlar(l); })
+    Promise.all([fetchCategories(), fetchLocations(), fetchBrands()])
+      .then(([k, l, m]) => { setKategoriler(k); setKonumlar(l); setMarkalar(m); })
       .catch(() => {});
   }, []);
 
@@ -63,11 +65,15 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
     if (konum) params.konum = konum;
     if (arama.trim()) params.ara = arama.trim();
     if (siralama) params.siralama = siralama;
+    if (filtre.marka) params.marka = filtre.marka;
+    if (filtre.minFiyat) params.minFiyat = filtre.minFiyat;
+    if (filtre.maxFiyat) params.maxFiyat = filtre.maxFiyat;
+    if (filtre.minPuan) params.minPuan = filtre.minPuan;
     fetchProducts(params)
       .then(setUrunler)
       .catch(() => setUrunler([]))
       .finally(() => setYukleniyor(false));
-  }, [kategori, konum, arama, siralama]);
+  }, [kategori, konum, arama, siralama, filtre]);
 
   useEffect(() => { urunleriGetir(); }, [urunleriGetir]);
 
@@ -136,7 +142,26 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
         </div>
       </section>
 
-      <main className="main">
+      <main className="main with-sidebar">
+        <aside className="filter-sidebar">
+          <h3>Filtrele</h3>
+          <label>Marka
+            <select value={filtre.marka} onChange={(e) => setFiltre({ ...filtre, marka: e.target.value })}>
+              <option value="">Tümü</option>
+              {markalar.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </label>
+          <label>Min Fiyat<input type="number" value={filtre.minFiyat} onChange={(e) => setFiltre({ ...filtre, minFiyat: e.target.value })} /></label>
+          <label>Max Fiyat<input type="number" value={filtre.maxFiyat} onChange={(e) => setFiltre({ ...filtre, maxFiyat: e.target.value })} /></label>
+          <label>Min Puan
+            <select value={filtre.minPuan} onChange={(e) => setFiltre({ ...filtre, minPuan: e.target.value })}>
+              <option value="">Tümü</option>
+              {[4, 4.5, 5].map((p) => <option key={p} value={p}>{p}+ ★</option>)}
+            </select>
+          </label>
+          <button type="button" className="fav-btn" onClick={() => setFiltre({ marka: '', minFiyat: '', maxFiyat: '', minPuan: '' })}>Temizle</button>
+        </aside>
+        <div className="main-content">
         <div className="toolbar">
           <select value={siralama} onChange={(e) => setSiralama(e.target.value)}>
             <option value="">Sıralama</option>
@@ -158,6 +183,7 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
             ))}
           </div>
         )}
+        </div>
       </main>
     </Layout>
   );

@@ -20,18 +20,26 @@ router.get('/', authZorunlu, async (req, res) => {
 
 router.post('/', authZorunlu, async (req, res) => {
   try {
-    const { urunId, adet = 1 } = req.body;
+    const { urunId, adet = 1, beden, renk } = req.body;
     const urun = await Product.findById(urunId);
     if (!urun) return res.status(404).json({ mesaj: 'Ürün bulunamadı.' });
+    if (urun.stok < 1) return res.status(400).json({ mesaj: 'Ürün stokta yok.' });
 
     const user = await User.findById(req.user._id);
     const mevcut = user.sepet.find((x) => x.urun.toString() === urunId);
-    if (mevcut) mevcut.adet += adet;
-    else user.sepet.push({ urun: urunId, adet });
+    const yeniAdet = (mevcut?.adet || 0) + adet;
+    if (yeniAdet > urun.stok) {
+      return res.status(400).json({ mesaj: `Stok yetersiz. Maksimum ${urun.stok} adet.` });
+    }
+    if (mevcut) {
+      mevcut.adet = yeniAdet;
+      if (beden) mevcut.beden = beden;
+      if (renk) mevcut.renk = renk;
+    } else {
+      user.sepet.push({ urun: urunId, adet, beden, renk });
+    }
     await user.save();
-
-    const guncel = await sepetGetir(req.user._id);
-    res.json(guncel.sepet);
+    res.json((await sepetGetir(req.user._id)).sepet);
   } catch {
     res.status(500).json({ mesaj: 'Sepete eklenemedi.' });
   }
@@ -45,11 +53,14 @@ router.patch('/:urunId', authZorunlu, async (req, res) => {
     const user = await User.findById(req.user._id);
     const item = user.sepet.find((x) => x.urun.toString() === req.params.urunId);
     if (!item) return res.status(404).json({ mesaj: 'Ürün sepette yok.' });
+
+    const urun = await Product.findById(req.params.urunId);
+    if (adet > urun.stok) {
+      return res.status(400).json({ mesaj: `Stok yetersiz. Maksimum ${urun.stok} adet.` });
+    }
     item.adet = adet;
     await user.save();
-
-    const guncel = await sepetGetir(req.user._id);
-    res.json(guncel.sepet);
+    res.json((await sepetGetir(req.user._id)).sepet);
   } catch {
     res.status(500).json({ mesaj: 'Sepet güncellenemedi.' });
   }
@@ -57,11 +68,8 @@ router.patch('/:urunId', authZorunlu, async (req, res) => {
 
 router.delete('/:urunId', authZorunlu, async (req, res) => {
   try {
-    await User.findByIdAndUpdate(req.user._id, {
-      $pull: { sepet: { urun: req.params.urunId } }
-    });
-    const guncel = await sepetGetir(req.user._id);
-    res.json(guncel.sepet);
+    await User.findByIdAndUpdate(req.user._id, { $pull: { sepet: { urun: req.params.urunId } } });
+    res.json((await sepetGetir(req.user._id)).sepet);
   } catch {
     res.status(500).json({ mesaj: 'Sepetten çıkarılamadı.' });
   }

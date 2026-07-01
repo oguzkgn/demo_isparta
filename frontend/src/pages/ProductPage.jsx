@@ -19,7 +19,10 @@ export default function ProductPage({ arama, setArama, kategori, setKategori, ko
   const [konumlar, setKonumlar] = useState([]);
   const [favori, setFavori] = useState(false);
   const [yorumlar, setYorumlar] = useState([]);
-  const [yorumForm, setYorumForm] = useState({ puan: 5, yorum: '' });
+  const [yorumForm, setYorumForm] = useState({ puan: 5, yorum: '', fotoUrl: '' });
+  const [seciliBeden, setSeciliBeden] = useState('');
+  const [seciliRenk, setSeciliRenk] = useState('');
+  const [seciliTaksit, setSeciliTaksit] = useState(1);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [yorumHata, setYorumHata] = useState('');
 
@@ -106,8 +109,35 @@ export default function ProductPage({ arama, setArama, kategori, setKategori, ko
                   {urun.eskiFiyat && <span className="price-old">{formatPrice(urun.eskiFiyat)}</span>}
                 </div>
                 <p className="kargo-info">{urun.fiyat >= 300 ? '🚚 Ücretsiz kargo' : '🚚 Kargo: 29,99 TL (300 TL üzeri ücretsiz)'}</p>
+                {urun.saticiAd && <p className="seller-info">🏪 Satıcı: <strong>{urun.saticiAd}</strong></p>}
+                {urun.bedenler?.length > 0 && (
+                  <div className="variant-group">
+                    <span>Beden:</span>
+                    {urun.bedenler.map((b) => (
+                      <button key={b} type="button" className={`variant-btn ${seciliBeden === b ? 'active' : ''}`} onClick={() => setSeciliBeden(b)}>{b}</button>
+                    ))}
+                  </div>
+                )}
+                {urun.renkler?.length > 0 && (
+                  <div className="variant-group">
+                    <span>Renk:</span>
+                    {urun.renkler.map((r) => (
+                      <button key={r} type="button" className={`variant-btn ${seciliRenk === r ? 'active' : ''}`} onClick={() => setSeciliRenk(r)}>{r}</button>
+                    ))}
+                  </div>
+                )}
+                {urun.taksitSecenekleri?.length > 0 && (
+                  <div className="variant-group">
+                    <span>Taksit:</span>
+                    {urun.taksitSecenekleri.map((t) => (
+                      <button key={t.ay} type="button" className={`variant-btn ${seciliTaksit === t.ay ? 'active' : ''}`} onClick={() => setSeciliTaksit(t.ay)}>
+                        {t.ay}× {formatPrice(t.tutar)}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="detail-actions">
-                  <button type="button" className="add-btn large" onClick={() => sepeteEkle(urun)}>Sepete Ekle</button>
+                  <button type="button" className="add-btn large" onClick={() => sepeteEkle(urun, { beden: seciliBeden, renk: seciliRenk })}>Sepete Ekle</button>
                   {kullanici ? (
                     <button type="button" className={`fav-btn ${favori ? 'active' : ''}`} onClick={favoriToggle}>
                       {favori ? '❤️ Favorilerde' : '🤍 Favorilere Ekle'}
@@ -138,9 +168,9 @@ export default function ProductPage({ arama, setArama, kategori, setKategori, ko
                     placeholder="Yorumunuzu yazın..."
                     value={yorumForm.yorum}
                     onChange={(e) => setYorumForm({ ...yorumForm, yorum: e.target.value })}
-                    required
-                    rows={3}
+                    required rows={3}
                   />
+                  <label>Fotoğraf URL (opsiyonel)<input value={yorumForm.fotoUrl} onChange={(e) => setYorumForm({ ...yorumForm, fotoUrl: e.target.value })} placeholder="https://..." /></label>
                   <button type="submit" className="add-btn">Yorum Yap</button>
                 </form>
               ) : (
