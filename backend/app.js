@@ -1,21 +1,19 @@
 require('dotenv').config();
 
 const express = require('express');
+const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const Product = require('./models/Product');
 const { ISPARTA_KONUMLAR, KATEGORILER, ORNEK_URUNLER } = require('./data/constants');
+const authRoutes = require('./routes/auth');
+const sepetRoutes = require('./routes/sepet');
+const favoriRoutes = require('./routes/favori');
+const siparisRoutes = require('./routes/siparis');
 
 const app = express();
 
-const allowedOrigins = [
-  'http://localhost:3001',
-  process.env.FRONTEND_URL
-].filter(Boolean);
-
-app.use(cors({
-  origin: allowedOrigins.length ? allowedOrigins : true
-}));
+app.use(cors({ origin: true }));
 app.use(express.json());
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/demo-shop';
@@ -34,10 +32,6 @@ mongoose.connect(MONGO_URI, {
   })
   .catch((err) => console.error('[Demo] MongoDB hatası:', err.message));
 
-app.get('/', (_req, res) => {
-  res.json({ mesaj: 'Demo API — Isparta yerel alışveriş', durum: 'ok' });
-});
-
 app.get('/api/health', (_req, res) => {
   res.json({
     durum: 'ok',
@@ -45,6 +39,11 @@ app.get('/api/health', (_req, res) => {
     veritabani: mongoose.connection.readyState === 1 ? 'bagli' : 'bekleniyor'
   });
 });
+
+app.use('/api/auth', authRoutes);
+app.use('/api/sepet', sepetRoutes);
+app.use('/api/favoriler', favoriRoutes);
+app.use('/api/siparisler', siparisRoutes);
 
 app.get('/api/konumlar', (_req, res) => {
   res.json(ISPARTA_KONUMLAR);
@@ -75,7 +74,7 @@ app.get('/api/urunler', async (req, res) => {
 
     const urunler = await Product.find(filter).sort(sort).lean();
     res.json(urunler);
-  } catch (error) {
+  } catch {
     res.status(500).json({ mesaj: 'Ürünler getirilemedi.' });
   }
 });
@@ -90,7 +89,19 @@ app.get('/api/urunler/:id', async (req, res) => {
   }
 });
 
+if (process.env.NODE_ENV === 'production') {
+  const distPath = path.join(__dirname, '../frontend/dist');
+  app.use(express.static(distPath));
+  app.get(/^(?!\/api).*/, (_req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+} else {
+  app.get('/', (_req, res) => {
+    res.json({ mesaj: 'Demo API — Isparta yerel alışveriş', durum: 'ok' });
+  });
+}
+
 const port = process.env.PORT || 5002;
 app.listen(port, '0.0.0.0', () => {
-  console.log(`[Demo] API http://0.0.0.0:${port}`);
+  console.log(`[Demo] Sunucu http://0.0.0.0:${port}`);
 });
