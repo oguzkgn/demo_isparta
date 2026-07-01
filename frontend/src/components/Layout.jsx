@@ -1,12 +1,33 @@
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { searchProducts } from '../api/client';
 import CartPanel from './CartPanel';
 
 export default function Layout({ children, kategoriler, kategori, setKategori, arama, setArama, onAra, konumlar, konum, setKonum }) {
   const { kullanici, cikisYap } = useAuth();
   const { sepetAdet, setSepetAcik } = useCart();
   const navigate = useNavigate();
+  const [oneriler, setOneriler] = useState([]);
+  const [oneriAcik, setOneriAcik] = useState(false);
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    if (!arama || arama.length < 2) { setOneriler([]); return; }
+    const t = setTimeout(() => {
+      searchProducts(arama)
+        .then((r) => setOneriler(r.oneriler || []))
+        .catch(() => setOneriler([]));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [arama]);
+
+  const oneriSec = (o) => {
+    setOneriAcik(false);
+    if (o.tip === 'urun' && o.id) navigate(`/urun/${o.id}`);
+    else { setArama(o.metin); onAra?.(); navigate('/'); }
+  };
 
   return (
     <>
@@ -16,36 +37,48 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
             demo
             <span>Isparta Alışveriş</span>
           </Link>
-          <form className="search-wrap" onSubmit={(e) => { e.preventDefault(); onAra?.(); navigate('/'); }}>
-            <input
-              placeholder="Ürün, kategori veya marka ara..."
-              value={arama}
-              onChange={(e) => setArama(e.target.value)}
-            />
-            <button type="submit">Ara</button>
-          </form>
+          <div className="search-wrap" ref={searchRef}>
+            <form onSubmit={(e) => { e.preventDefault(); setOneriAcik(false); onAra?.(); navigate('/'); }}>
+              <input
+                placeholder="Ürün, kategori veya marka ara..."
+                value={arama}
+                onChange={(e) => { setArama(e.target.value); setOneriAcik(true); }}
+                onFocus={() => setOneriAcik(true)}
+              />
+              <button type="submit">Ara</button>
+            </form>
+            {oneriAcik && oneriler.length > 0 && (
+              <div className="search-suggestions">
+                {oneriler.map((o, i) => (
+                  <button key={i} type="button" onClick={() => oneriSec(o)}>
+                    {o.tip === 'marka' ? '🏷️' : '🔍'} {o.metin}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {konumlar?.length > 0 && (
-          <select className="location-select" value={konum} onChange={(e) => setKonum(e.target.value)}>
-            <option value="">📍 Tüm Mahalleler</option>
-            {konumlar.map((k) => <option key={k} value={k}>{k}</option>)}
-          </select>
+            <select className="location-select" value={konum} onChange={(e) => setKonum(e.target.value)}>
+              <option value="">📍 Tüm Mahalleler</option>
+              {konumlar.map((k) => <option key={k} value={k}>{k}</option>)}
+            </select>
           )}
           <div className="header-actions">
             {kullanici ? (
               <>
-                <Link to="/favoriler" className="header-link">❤️ Favoriler</Link>
-                <Link to="/siparisler" className="header-link">📦 Siparişler</Link>
+                <Link to="/favoriler" className="header-link">❤️</Link>
+                <Link to="/siparisler" className="header-link">📦</Link>
                 <Link to="/profil" className="header-link">👤 {kullanici.ad}</Link>
                 <button type="button" className="header-link-btn" onClick={cikisYap}>Çıkış</button>
               </>
             ) : (
               <>
-                <Link to="/giris" className="header-link">Giriş Yap</Link>
+                <Link to="/giris" className="header-link">Giriş</Link>
                 <Link to="/kayit" className="header-link register-link">Kayıt Ol</Link>
               </>
             )}
             <button type="button" className="cart-btn" onClick={() => setSepetAcik(true)}>
-              🛒 Sepet
+              🛒
               {sepetAdet > 0 && <span className="cart-badge">{sepetAdet}</span>}
             </button>
           </div>

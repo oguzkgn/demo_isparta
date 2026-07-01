@@ -10,5 +10,6 @@ export const DURUM_ETIKET = {
   beklemede: 'Sipariş Alındı',
   hazirlaniyor: 'Hazırlanıyor',
   kargoda: 'Kargoda',
-  teslim: 'Teslim Edildi'
+  teslim: 'Teslim Edildi',
+  iptal: 'İptal Edildi'
 };

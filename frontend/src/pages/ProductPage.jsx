@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { fetchProduct, fetchCategories, fetchLocations, fetchFavorites, addFavorite, removeFavorite } from '../api/client';
+import {
+  fetchProduct, fetchCategories, fetchLocations,
+  fetchFavorites, addFavorite, removeFavorite,
+  fetchReviews, addReview, trackRecent
+} from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { formatPrice } from '../utils/format';
@@ -14,7 +18,10 @@ export default function ProductPage({ arama, setArama, kategori, setKategori, ko
   const [kategoriler, setKategoriler] = useState([]);
   const [konumlar, setKonumlar] = useState([]);
   const [favori, setFavori] = useState(false);
+  const [yorumlar, setYorumlar] = useState([]);
+  const [yorumForm, setYorumForm] = useState({ puan: 5, yorum: '' });
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [yorumHata, setYorumHata] = useState('');
 
   useEffect(() => {
     Promise.all([fetchCategories(), fetchLocations()])
@@ -23,11 +30,12 @@ export default function ProductPage({ arama, setArama, kategori, setKategori, ko
 
   useEffect(() => {
     setYukleniyor(true);
-    fetchProduct(id)
-      .then(setUrun)
+    Promise.all([fetchProduct(id), fetchReviews(id)])
+      .then(([u, y]) => { setUrun(u); setYorumlar(y); })
       .catch(() => setUrun(null))
       .finally(() => setYukleniyor(false));
-  }, [id]);
+    if (kullanici) trackRecent(id).catch(() => {});
+  }, [id, kullanici]);
 
   useEffect(() => {
     if (!kullanici || !urun) return;
@@ -38,16 +46,27 @@ export default function ProductPage({ arama, setArama, kategori, setKategori, ko
 
   const favoriToggle = async () => {
     if (!kullanici) return;
-    if (favori) {
-      await removeFavorite(id);
-      setFavori(false);
-    } else {
-      await addFavorite(id);
-      setFavori(true);
+    if (favori) { await removeFavorite(id); setFavori(false); }
+    else { await addFavorite(id); setFavori(true); }
+  };
+
+  const yorumGonder = async (e) => {
+    e.preventDefault();
+    setYorumHata('');
+    try {
+      await addReview(id, yorumForm);
+      const y = await fetchReviews(id);
+      setYorumlar(y);
+      const g = await fetchProduct(id);
+      setUrun(g);
+      setYorumForm({ puan: 5, yorum: '' });
+    } catch (err) {
+      setYorumHata(err.response?.data?.mesaj || 'Yorum eklenemedi.');
     }
   };
 
   const katAd = kategoriler.find((k) => k.id === urun?.kategori);
+  const indirim = urun?.eskiFiyat ? Math.round((1 - urun.fiyat / urun.eskiFiyat) * 100) : 0;
 
   return (
     <Layout
@@ -66,29 +85,83 @@ export default function ProductPage({ arama, setArama, kategori, setKategori, ko
         ) : !urun ? (
           <div className="empty-products"><span>😕</span>Ürün bulunamadı. <Link to="/">Ana sayfaya dön</Link></div>
         ) : (
-          <div className="product-detail">
-            <div className="product-detail-image">{urun.resim || '🛍️'}</div>
-            <div className="product-detail-info">
-              <div className="product-brand">{urun.marka}</div>
-              <h1>{urun.ad}</h1>
-              {katAd && <span className="cat-tag">{katAd.ikon} {katAd.ad}</span>}
-              <div className="product-rating">★ {urun.puan} ({urun.yorumSayisi} yorum)</div>
-              <div className="product-location">📍 {urun.konum}</div>
-              <p className="product-desc">{urun.aciklama}</p>
-              <div className="product-prices detail-prices">
-                <span className="price-now">{formatPrice(urun.fiyat)}</span>
-                {urun.eskiFiyat && <span className="price-old">{formatPrice(urun.eskiFiyat)}</span>}
+          <>
+            <nav className="breadcrumb">
+              <Link to="/">Ana Sayfa</Link> / {katAd?.ad || 'Ürün'} / {urun.ad}
+            </nav>
+            <div className="product-detail">
+              <div className="product-detail-image">
+                {indirim > 0 && <span className="badge discount">%{indirim}</span>}
+                {urun.resim || '🛍️'}
               </div>
-              <div className="detail-actions">
-                <button type="button" className="add-btn large" onClick={() => sepeteEkle(urun)}>Sepete Ekle</button>
-                {kullanici && (
-                  <button type="button" className={`fav-btn ${favori ? 'active' : ''}`} onClick={favoriToggle}>
-                    {favori ? '❤️ Favorilerde' : '🤍 Favorilere Ekle'}
-                  </button>
-                )}
+              <div className="product-detail-info">
+                <div className="product-brand">{urun.marka}</div>
+                <h1>{urun.ad}</h1>
+                {katAd && <span className="cat-tag">{katAd.ikon} {katAd.ad}</span>}
+                <div className="product-rating">★ {urun.puan?.toFixed(1)} ({urun.yorumSayisi} yorum)</div>
+                <div className="product-location">📍 {urun.konum} · Stok: {urun.stok}</div>
+                <p className="product-desc">{urun.aciklama}</p>
+                <div className="product-prices detail-prices">
+                  <span className="price-now">{formatPrice(urun.fiyat)}</span>
+                  {urun.eskiFiyat && <span className="price-old">{formatPrice(urun.eskiFiyat)}</span>}
+                </div>
+                <p className="kargo-info">{urun.fiyat >= 300 ? '🚚 Ücretsiz kargo' : '🚚 Kargo: 29,99 TL (300 TL üzeri ücretsiz)'}</p>
+                <div className="detail-actions">
+                  <button type="button" className="add-btn large" onClick={() => sepeteEkle(urun)}>Sepete Ekle</button>
+                  {kullanici ? (
+                    <button type="button" className={`fav-btn ${favori ? 'active' : ''}`} onClick={favoriToggle}>
+                      {favori ? '❤️ Favorilerde' : '🤍 Favorilere Ekle'}
+                    </button>
+                  ) : (
+                    <Link to="/giris" className="fav-btn">Giriş yapın</Link>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+
+            <section className="reviews-section">
+              <h2>Değerlendirmeler ({yorumlar.length})</h2>
+              {kullanici ? (
+                <form className="review-form" onSubmit={yorumGonder}>
+                  {yorumHata && <div className="auth-error">{yorumHata}</div>}
+                  <div className="star-select">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        className={n <= yorumForm.puan ? 'active' : ''}
+                        onClick={() => setYorumForm({ ...yorumForm, puan: n })}
+                      >★</button>
+                    ))}
+                  </div>
+                  <textarea
+                    placeholder="Yorumunuzu yazın..."
+                    value={yorumForm.yorum}
+                    onChange={(e) => setYorumForm({ ...yorumForm, yorum: e.target.value })}
+                    required
+                    rows={3}
+                  />
+                  <button type="submit" className="add-btn">Yorum Yap</button>
+                </form>
+              ) : (
+                <p className="auth-sub"><Link to="/giris">Giriş yapın</Link> ve yorum bırakın.</p>
+              )}
+              <div className="reviews-list">
+                {yorumlar.length === 0 ? (
+                  <p className="auth-sub">Henüz yorum yok. İlk yorumu siz yapın!</p>
+                ) : yorumlar.map((y) => (
+                  <article key={y._id} className="review-card">
+                    <div className="review-header">
+                      <strong>{y.kullaniciAd}</strong>
+                      <span>{'★'.repeat(y.puan)}{'☆'.repeat(5 - y.puan)}</span>
+                    </div>
+                    <p>{y.yorum}</p>
+                    <small>{new Date(y.createdAt).toLocaleDateString('tr-TR')}</small>
+                  </article>
+                ))}
+              </div>
+            </section>
+          </>
         )}
       </main>
     </Layout>

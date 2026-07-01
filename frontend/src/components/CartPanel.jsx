@@ -1,30 +1,17 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { formatPrice } from '../utils/format';
 
 export default function CartPanel() {
   const { kullanici } = useAuth();
-  const {
-    sepet, sepetAcik, setSepetAcik, sepettenCikar,
-    adetGuncelle, siparisTamamla, toplam
-  } = useCart();
+  const { sepet, sepetAcik, setSepetAcik, sepettenCikar, adetGuncelle, toplam } = useCart();
   const navigate = useNavigate();
 
-  const handleCheckout = async () => {
-    if (!kullanici) {
-      setSepetAcik(false);
-      navigate('/giris');
-      return;
-    }
-    try {
-      await siparisTamamla();
-      setSepetAcik(false);
-      alert('Siparişiniz alındı! 🌸');
-      navigate('/siparisler');
-    } catch (err) {
-      alert(err.response?.data?.mesaj || err.message);
-    }
+  const handleCheckout = () => {
+    setSepetAcik(false);
+    if (!kullanici) { navigate('/giris'); return; }
+    navigate('/odeme');
   };
 
   return (
@@ -60,8 +47,9 @@ export default function CartPanel() {
               <span>Toplam</span>
               <span>{formatPrice(toplam)}</span>
             </div>
+            <p className="kargo-info">{toplam >= 300 ? '🚚 Ücretsiz kargo!' : `🚚 ${formatPrice(300 - toplam)} daha ekleyin, kargo bedava`}</p>
             <button type="button" className="checkout-btn" onClick={handleCheckout}>
-              {kullanici ? 'Siparişi Tamamla' : 'Giriş Yap ve Sipariş Ver'}
+              {kullanici ? 'Ödemeye Geç' : 'Giriş Yap ve Devam Et'}
             </button>
           </div>
         )}

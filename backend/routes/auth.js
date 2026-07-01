@@ -59,6 +59,24 @@ router.put('/profil', authZorunlu, async (req, res) => {
   }
 });
 
+router.put('/sifre', authZorunlu, async (req, res) => {
+  try {
+    const { eskiSifre, yeniSifre } = req.body;
+    if (!eskiSifre || !yeniSifre || yeniSifre.length < 6) {
+      return res.status(400).json({ mesaj: 'Yeni şifre en az 6 karakter olmalı.' });
+    }
+    const user = await User.findById(req.user._id);
+    if (!(await user.sifreKontrol(eskiSifre))) {
+      return res.status(401).json({ mesaj: 'Mevcut şifre hatalı.' });
+    }
+    user.sifre = yeniSifre;
+    await user.save();
+    res.json({ mesaj: 'Şifre güncellendi.' });
+  } catch {
+    res.status(500).json({ mesaj: 'Şifre güncellenemedi.' });
+  }
+});
+
 router.delete('/hesap', authZorunlu, async (req, res) => {
   try {
     await Order.deleteMany({ kullanici: req.user._id });
@@ -66,6 +84,50 @@ router.delete('/hesap', authZorunlu, async (req, res) => {
     res.json({ mesaj: 'Hesabınız silindi.' });
   } catch {
     res.status(500).json({ mesaj: 'Hesap silinemedi.' });
+  }
+});
+
+router.get('/adresler', authZorunlu, async (req, res) => {
+  const user = await User.findById(req.user._id).select('adresler');
+  res.json(user.adresler || []);
+});
+
+router.post('/adresler', authZorunlu, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (req.body.varsayilan) {
+      user.adresler.forEach((a) => { a.varsayilan = false; });
+    }
+    user.adresler.push(req.body);
+    await user.save();
+    res.status(201).json(user.adresler);
+  } catch {
+    res.status(500).json({ mesaj: 'Adres eklenemedi.' });
+  }
+});
+
+router.put('/adresler/:id', authZorunlu, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const adres = user.adresler.id(req.params.id);
+    if (!adres) return res.status(404).json({ mesaj: 'Adres bulunamadı.' });
+    if (req.body.varsayilan) user.adresler.forEach((a) => { a.varsayilan = false; });
+    Object.assign(adres, req.body);
+    await user.save();
+    res.json(user.adresler);
+  } catch {
+    res.status(500).json({ mesaj: 'Adres güncellenemedi.' });
+  }
+});
+
+router.delete('/adresler/:id', authZorunlu, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    user.adresler.pull(req.params.id);
+    await user.save();
+    res.json(user.adresler);
+  } catch {
+    res.status(500).json({ mesaj: 'Adres silinemedi.' });
   }
 });
 

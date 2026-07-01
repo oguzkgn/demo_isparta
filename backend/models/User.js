@@ -6,6 +6,15 @@ const sepetItemSchema = new mongoose.Schema({
   adet: { type: Number, default: 1, min: 1 }
 }, { _id: false });
 
+const adresSchema = new mongoose.Schema({
+  baslik: { type: String, default: 'Ev' },
+  tamAd: String,
+  telefon: String,
+  adres: { type: String, required: true },
+  konum: String,
+  varsayilan: { type: Boolean, default: false }
+});
+
 const userSchema = new mongoose.Schema({
   ad: { type: String, required: true, trim: true },
   soyad: { type: String, required: true, trim: true },
@@ -14,8 +23,10 @@ const userSchema = new mongoose.Schema({
   telefon: String,
   adres: String,
   konum: String,
+  adresler: [adresSchema],
   sepet: [sepetItemSchema],
-  favoriler: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }]
+  favoriler: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+  sonGorulenler: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }]
 }, { timestamps: true });
 
 userSchema.pre('save', async function hashPassword() {

@@ -2,41 +2,36 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const Product = require('./models/Product');
-const { ISPARTA_KONUMLAR, KATEGORILER, ORNEK_URUNLER } = require('./data/constants');
+const { ISPARTA_KONUMLAR, KATEGORILER } = require('./data/constants');
+const { veritabaniBaglan } = require('./db');
 const authRoutes = require('./routes/auth');
 const sepetRoutes = require('./routes/sepet');
 const favoriRoutes = require('./routes/favori');
 const siparisRoutes = require('./routes/siparis');
+const yorumRoutes = require('./routes/yorum');
+const araRoutes = require('./routes/ara');
+const kuponRoutes = require('./routes/kupon');
 
 const app = express();
 
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/demo-shop';
-
-mongoose.connect(MONGO_URI, {
-  serverSelectionTimeoutMS: 15000,
-  socketTimeoutMS: 45000
-})
-  .then(async () => {
-    console.log('[Demo] MongoDB bağlandı');
-    const count = await Product.countDocuments();
-    if (count === 0) {
-      await Product.insertMany(ORNEK_URUNLER);
-      console.log(`[Demo] ${ORNEK_URUNLER.length} örnek ürün yüklendi`);
-    }
-  })
-  .catch((err) => console.error('[Demo] MongoDB hatası:', err.message));
+veritabaniBaglan();
 
 app.get('/api/health', (_req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const dbDurum = { 0: 'kopuk', 1: 'bagli', 2: 'baglaniyor', 3: 'kesiliyor' }[dbState] || 'bilinmiyor';
   res.json({
     durum: 'ok',
-    servis: 'demo-api',
-    veritabani: mongoose.connection.readyState === 1 ? 'bagli' : 'bekleniyor'
+    servis: 'demo-isparta',
+    veritabani: dbDurum,
+    mongoUri: process.env.MONGO_URI ? 'tanimli' : 'eksik',
+    nodeEnv: process.env.NODE_ENV || 'development'
   });
 });
 
@@ -44,6 +39,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/sepet', sepetRoutes);
 app.use('/api/favoriler', favoriRoutes);
 app.use('/api/siparisler', siparisRoutes);
+app.use('/api/yorumlar', yorumRoutes);
+app.use('/api/ara', araRoutes);
+app.use('/api/kuponlar', kuponRoutes);
 
 app.get('/api/konumlar', (_req, res) => {
   res.json(ISPARTA_KONUMLAR);
@@ -91,10 +89,16 @@ app.get('/api/urunler/:id', async (req, res) => {
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '../frontend/dist');
-  app.use(express.static(distPath));
-  app.get(/^(?!\/api).*/, (_req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
-  });
+  if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    app.use((req, res, next) => {
+      if (req.method !== 'GET' || req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+    console.log('[Demo] Frontend static dosyalar aktif ✓');
+  } else {
+    console.warn('[Demo] frontend/dist bulunamadı — sadece API modu');
+  }
 } else {
   app.get('/', (_req, res) => {
     res.json({ mesaj: 'Demo API — Isparta yerel alışveriş', durum: 'ok' });
@@ -103,5 +107,5 @@ if (process.env.NODE_ENV === 'production') {
 
 const port = process.env.PORT || 5002;
 app.listen(port, '0.0.0.0', () => {
-  console.log(`[Demo] Sunucu http://0.0.0.0:${port}`);
+  console.log(`[Demo] Sunucu http://0.0.0.0:${port} adresinde dinliyor ✓`);
 });

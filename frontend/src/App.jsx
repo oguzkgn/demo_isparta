@@ -8,7 +8,9 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import FavoritesPage from './pages/FavoritesPage';
-import OrdersPage from './pages/OrdersPage';
+import OrdersPageWrapper from './pages/OrdersPageWrapper';
+import OrderDetailPage from './pages/OrderDetailPage';
+import CheckoutPage from './pages/CheckoutPage';
 import './App.css';
 
 function AppRoutes() {
@@ -25,7 +27,9 @@ function AppRoutes() {
       <Route path="/kayit" element={<RegisterPage {...shared} />} />
       <Route path="/profil" element={<ProfilePage {...shared} />} />
       <Route path="/favoriler" element={<FavoritesPage {...shared} />} />
-      <Route path="/siparisler" element={<OrdersPage {...shared} />} />
+      <Route path="/siparisler" element={<OrdersPageWrapper {...shared} />} />
+      <Route path="/siparisler/:id" element={<OrderDetailPage {...shared} />} />
+      <Route path="/odeme" element={<CheckoutPage {...shared} />} />
     </Routes>
   );
 }
