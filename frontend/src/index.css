@@ -1,0 +1,68 @@
+:root {
+  --pink: #e91e8c;
+  --pink-soft: #fce4f3;
+  --pink-light: #fff0f8;
+  --purple: #7b2cbf;
+  --purple-soft: #ede0ff;
+  --lavender: #b794f6;
+  --rose: #f48fb1;
+  --white: #ffffff;
+  --text: #2d1b4e;
+  --text-muted: #6b5b7a;
+  --shadow: 0 4px 24px rgba(123, 44, 191, 0.12);
+  --radius: 14px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Outfit', system-ui, sans-serif;
+  color: var(--text);
+  background: var(--pink-light);
+  min-height: 100vh;
+}
+
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+}
+
+body::before {
+  width: 420px;
+  height: 420px;
+  top: -120px;
+  right: -80px;
+  background: radial-gradient(circle, var(--rose) 0%, transparent 70%);
+}
+
+body::after {
+  width: 380px;
+  height: 380px;
+  bottom: -100px;
+  left: -60px;
+  background: radial-gradient(circle, var(--lavender) 0%, transparent 70%);
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+}
+
+input, select {
+  font-family: inherit;
+}
