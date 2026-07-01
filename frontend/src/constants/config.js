@@ -1,4 +1,6 @@
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002';
+export const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? 'https://demo-isparta.onrender.com' : 'http://localhost:5002');
 
 export const ISPARTA_KONUMLAR = [
   '⭐ Çünür (Kampüs Bölgesi)',

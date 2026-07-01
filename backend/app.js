@@ -7,12 +7,23 @@ const Product = require('./models/Product');
 const { ISPARTA_KONUMLAR, KATEGORILER, ORNEK_URUNLER } = require('./data/constants');
 
 const app = express();
-app.use(cors());
+
+const allowedOrigins = [
+  'http://localhost:3001',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins.length ? allowedOrigins : true
+}));
 app.use(express.json());
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/demo-shop';
 
-mongoose.connect(MONGO_URI)
+mongoose.connect(MONGO_URI, {
+  serverSelectionTimeoutMS: 15000,
+  socketTimeoutMS: 45000
+})
   .then(async () => {
     console.log('[Demo] MongoDB bağlandı');
     const count = await Product.countDocuments();

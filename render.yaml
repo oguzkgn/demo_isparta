@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: demo-api
+    name: demo-isparta
     runtime: node
     plan: free
     rootDir: backend
@@ -12,3 +12,19 @@ services:
         value: production
       - key: MONGO_URI
         sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+  - type: web
+    name: demo-isparta-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://demo-isparta.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
