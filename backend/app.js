@@ -1,5 +1,8 @@
 require('dotenv').config();
 
+process.on('uncaughtException', (err) => console.error('[Demo] Beklenmeyen hata:', err));
+process.on('unhandledRejection', (err) => console.error('[Demo] İşlenmeyen hata:', err));
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -17,11 +20,10 @@ const araRoutes = require('./routes/ara');
 const kuponRoutes = require('./routes/kupon');
 
 const app = express();
+const port = Number(process.env.PORT) || 5002;
 
 app.use(cors({ origin: true }));
 app.use(express.json());
-
-veritabaniBaglan();
 
 app.get('/api/health', (_req, res) => {
   const dbState = mongoose.connection.readyState;
@@ -31,6 +33,7 @@ app.get('/api/health', (_req, res) => {
     servis: 'demo-isparta',
     veritabani: dbDurum,
     mongoUri: process.env.MONGO_URI ? 'tanimli' : 'eksik',
+    port,
     nodeEnv: process.env.NODE_ENV || 'development'
   });
 });
@@ -43,13 +46,8 @@ app.use('/api/yorumlar', yorumRoutes);
 app.use('/api/ara', araRoutes);
 app.use('/api/kuponlar', kuponRoutes);
 
-app.get('/api/konumlar', (_req, res) => {
-  res.json(ISPARTA_KONUMLAR);
-});
-
-app.get('/api/kategoriler', (_req, res) => {
-  res.json(KATEGORILER);
-});
+app.get('/api/konumlar', (_req, res) => res.json(ISPARTA_KONUMLAR));
+app.get('/api/kategoriler', (_req, res) => res.json(KATEGORILER));
 
 app.get('/api/urunler', async (req, res) => {
   try {
@@ -64,14 +62,11 @@ app.get('/api/urunler', async (req, res) => {
         { marka: { $regex: req.query.ara, $options: 'i' } }
       ];
     }
-
     let sort = { createdAt: -1 };
     if (req.query.siralama === 'fiyatArtan') sort = { fiyat: 1 };
     if (req.query.siralama === 'fiyatAzalan') sort = { fiyat: -1 };
     if (req.query.siralama === 'puan') sort = { puan: -1 };
-
-    const urunler = await Product.find(filter).sort(sort).lean();
-    res.json(urunler);
+    res.json(await Product.find(filter).sort(sort).lean());
   } catch {
     res.status(500).json({ mesaj: 'Ürünler getirilemedi.' });
   }
@@ -105,7 +100,7 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-const port = process.env.PORT || 5002;
 app.listen(port, '0.0.0.0', () => {
-  console.log(`[Demo] Sunucu http://0.0.0.0:${port} adresinde dinliyor ✓`);
+  console.log(`[Demo] Sunucu 0.0.0.0:${port} portunda dinliyor ✓`);
+  veritabaniBaglan();
 });

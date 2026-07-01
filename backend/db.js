@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const Product = require('../models/Product');
-const { ORNEK_URUNLER } = require('../data/constants');
+const Product = require('./models/Product');
+const { ORNEK_URUNLER } = require('./data/constants');
 
 let baglaniyor = false;
 
