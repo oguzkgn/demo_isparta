@@ -9,6 +9,16 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (!err.response) {
+      err.message = 'Sunucuya bağlanılamadı. API çalışıyor mu kontrol edin.';
+    }
+    return Promise.reject(err);
+  }
+);
+
 export const fetchProducts = (params) => api.get('/api/urunler', { params }).then((r) => r.data);
 export const fetchProduct = (id) => api.get(`/api/urunler/${id}`).then((r) => r.data);
 export const fetchCategories = () => api.get('/api/kategoriler').then((r) => r.data);

@@ -25,6 +25,8 @@ const odemeRoutes = require('./routes/odeme');
 
 const app = express();
 const port = Number(process.env.PORT) || 5002;
+const distPath = path.join(__dirname, '../frontend/dist');
+const hasFrontend = fs.existsSync(path.join(distPath, 'index.html'));
 
 app.use(cors({ origin: true }));
 app.use(express.json());
@@ -37,6 +39,7 @@ app.get('/api/health', (_req, res) => {
     servis: 'demo-isparta',
     veritabani: dbDurum,
     mongoUri: process.env.MONGO_URI ? 'tanimli' : 'eksik',
+    frontend: hasFrontend ? 'hazir' : 'eksik',
     port,
     nodeEnv: process.env.NODE_ENV || 'development'
   });
@@ -54,12 +57,16 @@ app.use('/api/iade', iadeRoutes);
 app.use('/api/odeme', odemeRoutes);
 
 app.get('/api/konumlar', (_req, res) => res.json(ISPARTA_KONUMLAR));
-app.get('/api/kategoriler', (_req, res) => res.json(KATEGORILER));
 app.get('/api/kategoriler/agac', (_req, res) => res.json(KATEGORI_AGACI));
+app.get('/api/kategoriler', (_req, res) => res.json(KATEGORILER));
 
 app.get('/api/markalar', async (_req, res) => {
-  const markalar = await Product.distinct('marka');
-  res.json(markalar.filter(Boolean).sort());
+  try {
+    const markalar = await Product.distinct('marka');
+    res.json(markalar.filter(Boolean).sort());
+  } catch {
+    res.status(500).json({ mesaj: 'Markalar getirilemedi.' });
+  }
 });
 
 app.get('/api/urunler', async (req, res) => {
@@ -86,15 +93,18 @@ app.get('/api/urunler', async (req, res) => {
     if (req.query.siralama === 'fiyatArtan') sort = { fiyat: 1 };
     if (req.query.siralama === 'fiyatAzalan') sort = { fiyat: -1 };
     if (req.query.siralama === 'puan') sort = { puan: -1 };
-    res.json(await Product.find(filter).populate('satici', 'magazaAdi durum').sort(sort).lean());
-  } catch {
+
+    const urunler = await Product.find(filter).sort(sort).lean();
+    res.json(urunler);
+  } catch (err) {
+    console.error('[Demo] urunler hatasi:', err.message);
     res.status(500).json({ mesaj: 'Ürünler getirilemedi.' });
   }
 });
 
 app.get('/api/urunler/:id', async (req, res) => {
   try {
-    const urun = await Product.findById(req.params.id).populate('satici', 'magazaAdi durum telefon');
+    const urun = await Product.findById(req.params.id).lean();
     if (!urun) return res.status(404).json({ mesaj: 'Ürün bulunamadı.' });
     res.json(urun);
   } catch {
@@ -102,23 +112,26 @@ app.get('/api/urunler/:id', async (req, res) => {
   }
 });
 
-if (process.env.NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, '../frontend/dist');
-  if (fs.existsSync(distPath)) {
-    app.use(express.static(distPath));
-    app.use((req, res, next) => {
-      if (req.method !== 'GET' || req.path.startsWith('/api')) return next();
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-    console.log('[Demo] Frontend static dosyalar aktif ✓');
-  } else {
-    console.warn('[Demo] frontend/dist bulunamadı — sadece API modu');
-  }
+if (hasFrontend) {
+  app.use(express.static(distPath, { index: false }));
+  app.get(/^\/(?!api).*/, (_req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+  console.log('[Demo] Frontend aktif:', distPath);
 } else {
   app.get('/', (_req, res) => {
-    res.json({ mesaj: 'Demo API — Isparta yerel alışveriş', durum: 'ok' });
+    res.json({
+      mesaj: 'Demo API çalışıyor — frontend/dist bulunamadı',
+      api: '/api/health',
+      durum: 'ok'
+    });
   });
+  console.warn('[Demo] frontend/dist yok — sadece API modu');
 }
+
+app.use('/api', (_req, res) => {
+  res.status(404).json({ mesaj: 'API endpoint bulunamadı.' });
+});
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`[Demo] Sunucu 0.0.0.0:${port} portunda dinliyor ✓`);
