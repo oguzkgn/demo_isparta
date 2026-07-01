@@ -34,14 +34,18 @@ app.use(express.json());
 app.get('/api/health', (_req, res) => {
   const dbState = mongoose.connection.readyState;
   const dbDurum = { 0: 'kopuk', 1: 'bagli', 2: 'baglaniyor', 3: 'kesiliyor' }[dbState] || 'bilinmiyor';
+  const mongoTanimli = Boolean(process.env.MONGO_URI);
   res.json({
     durum: 'ok',
     servis: 'demo-isparta',
     veritabani: dbDurum,
-    mongoUri: process.env.MONGO_URI ? 'tanimli' : 'eksik',
+    mongoUri: mongoTanimli ? 'tanimli' : 'eksik',
     frontend: hasFrontend ? 'hazir' : 'eksik',
     port,
-    nodeEnv: process.env.NODE_ENV || 'development'
+    nodeEnv: process.env.NODE_ENV || 'development',
+    ...(mongoTanimli ? {} : {
+      uyari: 'Render Dashboard → Environment → MONGO_URI ekleyin'
+    })
   });
 });
 
