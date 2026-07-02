@@ -47,7 +47,7 @@ export default function LoginPage({ arama, setArama, kategori, setKategori, konu
     <Layout arama={arama} setArama={setArama} kategori={kategori} setKategori={setKategori} konum={konum} setKonum={setKonum}>
       <main className="main auth-page">
         <div className="auth-portal customer-portal">
-          <div className="auth-portal-badge customer">🛍️ Müşteri Girişi</div>
+          <div className="auth-portal-badge customer">Müşteri Girişi</div>
           <form className="auth-form" onSubmit={handleSubmit}>
             <h1>Alışverişe Giriş Yap</h1>
             <p className="auth-sub">Favorilerinize, siparişlerinize ve sepetinize erişin</p>
@@ -64,7 +64,7 @@ export default function LoginPage({ arama, setArama, kategori, setKategori, konu
               <span>veya</span>
             </div>
             <Link to="/satici/giris" className="seller-entry-link">
-              🏪 Satıcı mısınız? Satıcı girişi →
+              Satıcı mısınız? Satıcı girişi
             </Link>
           </form>
         </div>

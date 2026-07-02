@@ -1,16 +1,17 @@
 import { Link } from 'react-router-dom';
 import { formatPrice, DURUM_ETIKET } from '../utils/format';
+import EmptyState from '../components/EmptyState';
 import Layout from '../components/Layout';
 
 export default function OrdersPage({ arama, setArama, kategori, setKategori, konum, setKonum, siparisler, yukleniyor }) {
   return (
     <Layout arama={arama} setArama={setArama} kategori={kategori} setKategori={setKategori} konum={konum} setKonum={setKonum}>
       <main className="main">
-        <h1 className="page-title">📦 Siparişlerim</h1>
+        <h1 className="page-title">Siparişlerim</h1>
         {yukleniyor ? (
           <div className="loading">Yükleniyor...</div>
         ) : !Array.isArray(siparisler) || siparisler.length === 0 ? (
-          <div className="empty-products"><span>📭</span>Henüz siparişiniz yok.</div>
+          <EmptyState title="Henüz siparişiniz yok" description="Alışveriş yaptığınızda siparişleriniz burada görünür." />
         ) : (
           <div className="orders-list">
             {siparisler.map((s) => (

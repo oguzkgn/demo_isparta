@@ -30,7 +30,7 @@ export default function VendorApplyPage() {
             setHata(err.response?.data?.mesaj || 'Başvuru gönderilemedi.');
           }
         }}>
-          <h1>🏪 Satıcı Başvurusu</h1>
+          <h1 className="page-title">Satıcı Başvurusu</h1>
           <p className="auth-sub">Onay sonrası ürünlerinizi satışa koyabilirsiniz</p>
           {mesaj && <div className="auth-success">{mesaj}</div>}
           {hata && <div className="auth-error">{hata}</div>}

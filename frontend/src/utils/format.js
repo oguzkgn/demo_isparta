@@ -1,3 +1,7 @@
+export function konumMetni(konum) {
+  return String(konum || '').replace(/^\s*⭐\s*/, '').trim();
+}
+
 export function formatPrice(n) {
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',

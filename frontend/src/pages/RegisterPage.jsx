@@ -65,7 +65,7 @@ export default function RegisterPage({ arama, setArama, kategori, setKategori, k
             {yukleniyor ? 'Kayıt oluşturuluyor...' : 'Kayıt Ol'}
           </button>
           <p className="auth-alt">Zaten hesabınız var mı? <Link to="/giris">Giriş yapın</Link></p>
-          <Link to="/satici/giris" className="seller-entry-link">🏪 Satıcı olarak satış yapmak istiyorum</Link>
+          <Link to="/satici/giris" className="seller-entry-link">Satıcı olarak satış yapmak istiyorum</Link>
         </form>
       </main>
     </Layout>

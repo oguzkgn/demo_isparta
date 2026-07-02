@@ -37,7 +37,7 @@ export default function ProfilePage({ arama, setArama, kategori, setKategori, ko
   return (
     <Layout arama={arama} setArama={setArama} kategori={kategori} setKategori={setKategori} konum={konum} setKonum={setKonum}>
       <main className="main auth-page">
-        <h1 className="page-title">👤 Hesabım</h1>
+        <h1 className="page-title">Hesabım</h1>
         <div className="profile-tabs">
           {tabs.map((t) => (
             <button key={t} type="button" className={tab === t ? 'active' : ''} onClick={() => { setTab(t); setMesaj(''); setHata(''); }}>
@@ -143,11 +143,11 @@ export default function ProfilePage({ arama, setArama, kategori, setKategori, ko
         )}
 
         <div className="profile-links">
-          <Link to="/favoriler">❤️ Favorilerim</Link>
-          <Link to="/siparisler">📦 Siparişlerim</Link>
-          <Link to="/satici/basvuru">🏪 Satıcı Ol</Link>
-          {(kullanici.rol === 'satici' || kullanici.rol === 'admin') && <Link to="/satici/panel">📊 Satıcı Paneli</Link>}
-          {kullanici.rol === 'admin' && <Link to="/admin/yorumlar">✅ Yorum Onay</Link>}
+          <Link to="/favoriler">Favorilerim</Link>
+          <Link to="/siparisler">Siparişlerim</Link>
+          <Link to="/satici/basvuru">Satıcı Ol</Link>
+          {(kullanici.rol === 'satici' || kullanici.rol === 'admin') && <Link to="/satici/panel">Satıcı Paneli</Link>}
+          {kullanici.rol === 'admin' && <Link to="/admin/yorumlar">Yorum Onay</Link>}
         </div>
       </main>
     </Layout>

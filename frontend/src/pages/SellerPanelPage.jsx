@@ -8,6 +8,8 @@ import {
 import { formatPrice, DURUM_ETIKET } from '../utils/format';
 import { asArray } from '../utils/safe';
 import SellerLayout from '../components/SellerLayout';
+import ProductImage from '../components/ProductImage';
+import EmptyState from '../components/EmptyState';
 
 export default function SellerPanelPage() {
   const { kullanici } = useAuth();
@@ -17,8 +19,8 @@ export default function SellerPanelPage() {
   const [siparisler, setSiparisler] = useState([]);
   const [vendor, setVendor] = useState(null);
   const [yeniUrun, setYeniUrun] = useState({
-    ad: '', fiyat: '', stok: 10, kategori: 'lavanta', konum: '⭐ Çarşı / Merkez',
-    marka: '', aciklama: '', resim: '🛍️'
+    ad: '', fiyat: '', stok: 10, kategori: 'lavanta', konum: 'Çarşı / Merkez',
+    marka: '', aciklama: '', resim: ''
   });
 
   useEffect(() => {
@@ -41,12 +43,12 @@ export default function SellerPanelPage() {
     <SellerLayout>
       <main className="seller-main">
         <div className="seller-panel-header">
-          <h1 className="page-title">📊 Satıcı Paneli {vendor?.magazaAdi && `— ${vendor.magazaAdi}`}</h1>
+          <h1 className="page-title">Satıcı Paneli {vendor?.magazaAdi && `— ${vendor.magazaAdi}`}</h1>
           <p className="seller-panel-sub">Ürünlerinizi ekleyin, stok güncelleyin ve siparişleri yönetin</p>
         </div>
         <div className="profile-tabs seller-tabs">
-          <button type="button" className={tab === 'urunler' ? 'active' : ''} onClick={() => setTab('urunler')}>📦 Envanter</button>
-          <button type="button" className={tab === 'siparisler' ? 'active' : ''} onClick={() => setTab('siparisler')}>🚚 Siparişler</button>
+          <button type="button" className={tab === 'urunler' ? 'active' : ''} onClick={() => setTab('urunler')}>Envanter</button>
+          <button type="button" className={tab === 'siparisler' ? 'active' : ''} onClick={() => setTab('siparisler')}>Siparişler</button>
         </div>
 
         {tab === 'urunler' && (
@@ -59,9 +61,9 @@ export default function SellerPanelPage() {
                 stok: Number(yeniUrun.stok)
               });
               setUrunler([u, ...urunler]);
-              setYeniUrun({ ad: '', fiyat: '', stok: 10, kategori: 'lavanta', konum: '⭐ Çarşı / Merkez', marka: '', aciklama: '', resim: '🛍️' });
+              setYeniUrun({ ad: '', fiyat: '', stok: 10, kategori: 'lavanta', konum: 'Çarşı / Merkez', marka: '', aciklama: '', resim: '' });
             }}>
-              <h3>➕ Yeni Ürün Satışa Koy</h3>
+              <h3>Yeni Ürün Satışa Koy</h3>
               <p className="auth-sub">Ürün bilgilerini doldurup mağazanıza ekleyin</p>
               <div className="form-row">
                 <label>Ürün Adı<input value={yeniUrun.ad} onChange={(e) => setYeniUrun({ ...yeniUrun, ad: e.target.value })} required /></label>
@@ -76,11 +78,11 @@ export default function SellerPanelPage() {
             </form>
             <div className="product-grid seller-grid">
               {Array.isArray(urunler) && urunler.length === 0 ? (
-                <div className="empty-products seller-empty"><span>📭</span>Henüz ürün eklemediniz.</div>
+                <EmptyState title="Henüz ürün eklemediniz" description="Yukarıdaki formu kullanarak ilk ürününüzü ekleyin." />
               ) : (
                 urunler.map((u) => (
                   <article key={u._id} className="product-card seller-card">
-                    <div className="product-image">{u.resim}</div>
+                    <ProductImage urun={u} />
                     <div className="product-body">
                       <h3 className="product-title">{u.ad}</h3>
                       <p>{formatPrice(u.fiyat)} · Stok: {u.stok}</p>
@@ -108,7 +110,7 @@ export default function SellerPanelPage() {
         {tab === 'siparisler' && (
           <div className="orders-list">
             {Array.isArray(siparisler) && siparisler.length === 0 ? (
-              <div className="empty-products seller-empty"><span>📦</span>Henüz sipariş yok.</div>
+              <EmptyState title="Henüz sipariş yok" description="Müşteri siparişleri burada listelenir." />
             ) : (
               siparisler.map((s) => (
                 <article key={s._id} className="order-card seller-order">

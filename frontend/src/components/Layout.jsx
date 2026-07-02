@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { searchProducts } from '../api/client';
 import { asArray } from '../utils/safe';
+import { konumMetni } from '../utils/format';
+import { IconCart, IconHeart, IconPackage, IconSearch, IconStore, IconTag, IconUser } from './icons/Icons';
 import CartPanel from './CartPanel';
 
 export default function Layout({ children, kategoriler, kategori, setKategori, arama, setArama, onAra, konumlar, konum, setKonum }) {
@@ -34,12 +36,13 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
     <>
       <header className="header">
         <div className="header-top">
-          <Link to="/" className="logo" style={{ textDecoration: 'none', color: 'inherit' }}>
-            demo
-            <span>Isparta Alışveriş</span>
+          <Link to="/" className="logo">
+            <span className="logo-mark">demo</span>
+            <span className="logo-sub">Isparta Alışveriş</span>
           </Link>
           <div className="search-wrap" ref={searchRef}>
             <form onSubmit={(e) => { e.preventDefault(); setOneriAcik(false); onAra?.(); navigate('/'); }}>
+              <IconSearch className="search-icon" />
               <input
                 placeholder="Ürün, kategori veya marka ara..."
                 value={arama}
@@ -52,7 +55,8 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
               <div className="search-suggestions">
                 {oneriler.slice(0, 5).map((o, i) => (
                   <button key={i} type="button" onClick={() => oneriSec(o)}>
-                    {o.tip === 'marka' ? '🏷️' : '🔍'} {o.metin}
+                    {o.tip === 'marka' ? <IconTag size={14} /> : <IconSearch size={14} />}
+                    <span>{o.metin}</span>
                   </button>
                 ))}
               </div>
@@ -60,27 +64,39 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
           </div>
           {Array.isArray(konumlar) && konumlar.length > 0 && (
             <select className="location-select" value={konum} onChange={(e) => setKonum(e.target.value)}>
-              <option value="">📍 Tüm Mahalleler</option>
-              {konumlar.map((k) => <option key={k} value={k}>{k}</option>)}
+              <option value="">Tüm Mahalleler</option>
+              {konumlar.map((k) => <option key={k} value={k}>{konumMetni(k)}</option>)}
             </select>
           )}
           <div className="header-actions">
             {kullanici ? (
               <>
-                <Link to="/favoriler" className="header-link fav-link" title="Favorilerim">❤️ Favoriler</Link>
-                <Link to="/siparisler" className="header-link">📦 Siparişler</Link>
-                <Link to="/profil" className="header-link">👤 {kullanici.ad}</Link>
+                <Link to="/favoriler" className="header-link icon-link" title="Favorilerim">
+                  <IconHeart size={16} />
+                  <span>Favoriler</span>
+                </Link>
+                <Link to="/siparisler" className="header-link icon-link" title="Siparişler">
+                  <IconPackage size={16} />
+                  <span>Siparişler</span>
+                </Link>
+                <Link to="/profil" className="header-link icon-link" title="Profil">
+                  <IconUser size={16} />
+                  <span>{kullanici.ad}</span>
+                </Link>
                 <button type="button" className="header-link-btn" onClick={cikisYap}>Çıkış</button>
               </>
             ) : (
               <>
                 <Link to="/giris" className="header-link">Giriş</Link>
                 <Link to="/kayit" className="header-link register-link">Kayıt Ol</Link>
-                <Link to="/satici/giris" className="header-link seller-link">🏪 Satıcı</Link>
+                <Link to="/satici/giris" className="header-link seller-link">
+                  <IconStore size={15} />
+                  <span>Satıcı</span>
+                </Link>
               </>
             )}
-            <button type="button" className="cart-btn" onClick={() => setSepetAcik(true)}>
-              🛒
+            <button type="button" className="cart-btn" onClick={() => setSepetAcik(true)} aria-label="Sepet">
+              <IconCart size={18} />
               {sepetAdet > 0 && <span className="cart-badge">{sepetAdet}</span>}
             </button>
           </div>
@@ -97,7 +113,7 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
                 className={`cat-chip ${kategori === k.id ? 'active' : ''}`}
                 onClick={() => { setKategori(k.id); navigate('/'); }}
               >
-                {k.ikon} {k.ad}
+                {k.ad}
               </button>
             ))}
           </div>
@@ -107,9 +123,8 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
       {children}
 
       <footer className="footer">
-        <div className="deco">🌹 🌿 💜</div>
-        <p><strong>demo</strong> — Isparta'nın yerel alışveriş platformu</p>
-        <p>Çünür · İyaş · Merkez · Lavanta Vadisi</p>
+        <p className="footer-brand"><strong>demo</strong> — Isparta&apos;nın yerel alışveriş platformu</p>
+        <p className="footer-locations">Çünür · İyaş · Merkez · Lavanta Vadisi</p>
       </footer>
 
       <CartPanel />

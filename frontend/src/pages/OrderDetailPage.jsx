@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { fetchOrder, cancelOrder, createReturn } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { formatPrice, DURUM_ETIKET } from '../utils/format';
+import { formatPrice, DURUM_ETIKET, konumMetni } from '../utils/format';
 import Layout from '../components/Layout';
+import EmptyState from '../components/EmptyState';
 
 export default function OrderDetailPage({ arama, setArama, kategori, setKategori, konum, setKonum }) {
   const { id } = useParams();
@@ -38,7 +39,7 @@ export default function OrderDetailPage({ arama, setArama, kategori, setKategori
         {yukleniyor ? (
           <div className="loading">Yükleniyor...</div>
         ) : !siparis ? (
-          <div className="empty-products"><span>😕</span>Sipariş bulunamadı. <Link to="/siparisler">Siparişlerime dön</Link></div>
+          <EmptyState title="Sipariş bulunamadı" description={<Link to="/siparisler">Siparişlerime dön</Link>} />
         ) : (
           <div className="order-detail">
             <nav className="breadcrumb"><Link to="/siparisler">Siparişlerim</Link> / #{siparis._id.slice(-6).toUpperCase()}</nav>
@@ -47,7 +48,7 @@ export default function OrderDetailPage({ arama, setArama, kategori, setKategori
               <span className={`order-status status-${siparis.durum}`}>{DURUM_ETIKET[siparis.durum]}</span>
             </div>
             {siparis.takipNo && siparis.durum !== 'iptal' && (
-              <p className="tracking">📦 Kargo Takip: <strong>{siparis.takipNo}</strong></p>
+              <p className="tracking">Kargo Takip: <strong>{siparis.takipNo}</strong></p>
             )}
             <div className="order-timeline">
               {['beklemede', 'hazirlaniyor', 'kargoda', 'teslim'].map((d) => (
@@ -70,8 +71,8 @@ export default function OrderDetailPage({ arama, setArama, kategori, setKategori
               <div className="summary-row"><span>Kargo</span><span>{siparis.kargo === 0 ? 'Ücretsiz' : formatPrice(siparis.kargo)}</span></div>
               <div className="summary-row total"><span>Toplam</span><strong>{formatPrice(siparis.toplam)}</strong></div>
             </div>
-            <p>📍 {siparis.adres} — {siparis.konum}</p>
-            <p>💳 {{ kredi_karti: 'Kredi Kartı', kapida_odeme: 'Kapıda Ödeme', havale: 'Havale' }[siparis.odemeYontemi]}</p>
+            <p>{siparis.adres} — {konumMetni(siparis.konum)}</p>
+            <p>{ { kredi_karti: 'Kredi Kartı', kapida_odeme: 'Kapıda Ödeme', havale: 'Havale' }[siparis.odemeYontemi] }</p>
             <p><small>{new Date(siparis.createdAt).toLocaleString('tr-TR')}</small></p>
             {!['kargoda', 'teslim', 'iptal'].includes(siparis.durum) && (
               <button type="button" className="delete-btn" onClick={iptalEt}>Siparişi İptal Et</button>

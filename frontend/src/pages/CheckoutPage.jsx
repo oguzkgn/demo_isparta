@@ -42,7 +42,7 @@ export default function CheckoutPage({ arama, setArama, kategori, setKategori, k
     try {
       const sonuc = await validateCoupon(kuponKodu, toplam);
       setIndirim(sonuc.indirim);
-      setKuponMesaj(`✓ ${sonuc.kupon.aciklama} uygulandı`);
+      setKuponMesaj(`${sonuc.kupon.aciklama} uygulandı`);
     } catch (err) {
       setIndirim(0);
       setKuponMesaj(err.response?.data?.mesaj || 'Kupon geçersiz');
@@ -76,11 +76,11 @@ export default function CheckoutPage({ arama, setArama, kategori, setKategori, k
   return (
     <Layout arama={arama} setArama={setArama} kategori={kategori} setKategori={setKategori} konum={konum} setKonum={setKonum}>
       <main className="main checkout-page">
-        <h1 className="page-title">💳 Ödeme</h1>
+        <h1 className="page-title">Ödeme</h1>
         <div className="checkout-grid">
           <div className="checkout-form">
             <section className="checkout-section">
-              <h3>📍 Teslimat Adresi</h3>
+              <h3>Teslimat Adresi</h3>
               {adresler.map((a) => (
                 <label key={a._id} className="address-option">
                   <input type="radio" name="adres" value={a._id} checked={seciliAdres === a._id} onChange={() => setSeciliAdres(a._id)} />
@@ -95,7 +95,7 @@ export default function CheckoutPage({ arama, setArama, kategori, setKategori, k
             </section>
 
             <section className="checkout-section">
-              <h3>🎟️ Kupon Kodu</h3>
+              <h3>Kupon Kodu</h3>
               <div className="coupon-row">
                 <input value={kuponKodu} onChange={(e) => setKuponKodu(e.target.value.toUpperCase())} placeholder="Kupon kodu" />
                 <button type="button" onClick={kuponUygula}>Uygula</button>
@@ -109,7 +109,7 @@ export default function CheckoutPage({ arama, setArama, kategori, setKategori, k
             </section>
 
             <section className="checkout-section">
-              <h3>💳 Ödeme Yöntemi</h3>
+              <h3>Ödeme Yöntemi</h3>
               {['kredi_karti', 'kapida_odeme', 'havale'].map((y) => (
                 <label key={y} className="address-option">
                   <input type="radio" name="odeme" value={y} checked={odemeYontemi === y} onChange={() => setOdemeYontemi(y)} />

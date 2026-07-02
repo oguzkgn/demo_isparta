@@ -30,7 +30,7 @@ export default function SellerLoginPage() {
     <SellerLayout>
       <main className="seller-main auth-page">
         <div className="auth-portal seller-portal">
-          <div className="auth-portal-badge">🏪 Satıcı Girişi</div>
+          <div className="auth-portal-badge">Satıcı Girişi</div>
           <form className="auth-form seller-auth-form" onSubmit={handleSubmit}>
             <h1>Mağazanıza Giriş Yapın</h1>
             <p className="auth-sub">Ürün ekleyin, stok yönetin ve siparişleri takip edin</p>

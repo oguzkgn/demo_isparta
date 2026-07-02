@@ -1,28 +1,22 @@
+import { BG_IMAGES } from '../constants/images';
+
 export default function AnimatedBackground() {
   return (
     <div className="animated-bg" aria-hidden="true">
-      <div className="wave-scene">
-        <div className="wave-flag wave-lavender wave-1">
-          <div className="flag-face flag-front" />
-          <div className="flag-face flag-back" />
+      <div className="bg-overlay" />
+      <div className="photo-scene">
+        <div className="photo-panel photo-lavender panel-1">
+          <img src={BG_IMAGES.lavender} alt="" loading="eager" />
         </div>
-        <div className="wave-flag wave-rose wave-2">
-          <div className="flag-face flag-front" />
-          <div className="flag-face flag-back" />
+        <div className="photo-panel photo-rose panel-2">
+          <img src={BG_IMAGES.rose} alt="" loading="eager" />
         </div>
-        <div className="wave-flag wave-lavender wave-3">
-          <div className="flag-face flag-front" />
-          <div className="flag-face flag-back" />
+        <div className="photo-panel photo-lavender panel-3">
+          <img src={BG_IMAGES.lavender} alt="" loading="lazy" />
         </div>
-        <div className="wave-flag wave-rose wave-4">
-          <div className="flag-face flag-front" />
-          <div className="flag-face flag-back" />
+        <div className="photo-panel photo-rose panel-4">
+          <img src={BG_IMAGES.rose} alt="" loading="lazy" />
         </div>
-      </div>
-      <div className="floating-petals">
-        {['🌸', '🌹', '💜', '🌿', '🌺', '🪻'].map((icon, i) => (
-          <span key={i} className={`petal petal-${i + 1}`}>{icon}</span>
-        ))}
       </div>
     </div>
   );
