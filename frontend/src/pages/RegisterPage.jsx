@@ -1,15 +1,22 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { registerSeller } from '../api/client';
 import { kayitFormDogrula, apiHataMesaji } from '../utils/apiError';
-import Layout from '../components/Layout';
+import AuthShellLayout, { PortalToggle } from '../components/AuthShellLayout';
 
-export default function RegisterPage({ arama, setArama, kategori, setKategori, konum, setKonum }) {
+export default function RegisterPage() {
   const { kayitOl } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [portal, setPortal] = useState(searchParams.get('portal') === 'satici' ? 'satici' : 'musteri');
   const [form, setForm] = useState({ ad: '', soyad: '', email: '', sifre: '', telefon: '', adres: '', konum: '' });
   const [hatalar, setHatalar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('portal') === 'satici') setPortal('satici');
+  }, [searchParams]);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -22,10 +29,18 @@ export default function RegisterPage({ arama, setArama, kategori, setKategori, k
     }
     setHatalar([]);
     setYukleniyor(true);
+    sessionStorage.setItem('authPortal', portal);
     try {
-      await kayitOl(form);
-      navigate('/');
+      if (portal === 'satici') {
+        sessionStorage.setItem('pendingSellerSetup', '1');
+        await registerSeller(form);
+      } else {
+        sessionStorage.removeItem('pendingSellerSetup');
+        await kayitOl(form);
+      }
+      navigate(`/eposta-dogrula?email=${encodeURIComponent(form.email)}&portal=${portal}`, { replace: true });
     } catch (err) {
+      sessionStorage.removeItem('pendingSellerSetup');
       const apiHatalar = err.response?.data?.hatalar;
       if (Array.isArray(apiHatalar) && apiHatalar.length) {
         setHatalar(apiHatalar);
@@ -37,41 +52,51 @@ export default function RegisterPage({ arama, setArama, kategori, setKategori, k
     }
   };
 
+  const saticiMod = portal === 'satici';
+
   return (
-    <Layout arama={arama} setArama={setArama} kategori={kategori} setKategori={setKategori} konum={konum} setKonum={setKonum}>
-      <main className="main auth-page">
-        <div className="auth-portal auth-vivid">
-          <p className="auth-kicker">Üyelik</p>
-          <form className="auth-form wide auth-form-vivid" onSubmit={handleSubmit} noValidate>
-            <h1>Hesap Oluşturun</h1>
-            <p className="auth-sub auth-sub-vivid">
-              Isparta&apos;da alışverişe başlayın. Türkçe karakterli ad ve soyad kabul edilir.
+    <AuthShellLayout>
+      <main className="auth-shell-main">
+        <div className={`auth-portal ${saticiMod ? 'seller-portal' : 'customer-portal auth-vivid'}`}>
+          <div className={`auth-portal-badge ${saticiMod ? '' : 'customer'}`}>
+            {saticiMod ? 'Satıcı Kaydı' : 'Müşteri Kaydı'}
+          </div>
+          <PortalToggle portal={portal} setPortal={setPortal} />
+          <form className={`auth-form wide ${saticiMod ? 'seller-auth-form' : 'auth-form-vivid'}`} onSubmit={handleSubmit} noValidate>
+            <h1>{saticiMod ? 'Satıcı Hesabı Oluştur' : 'Hesap Oluşturun'}</h1>
+            <p className="auth-sub">
+              {saticiMod
+                ? 'Kayıt sonrası e-posta doğrulaması ile ilan paneline geçersiniz'
+                : 'Isparta\'da alışverişe başlayın'}
             </p>
             {hatalar.length > 0 && (
               <div className="auth-error">
                 {hatalar.length === 1 ? hatalar[0] : (
-                  <ul className="auth-error-list">
-                    {hatalar.map((h, i) => <li key={i}>{h}</li>)}
-                  </ul>
+                  <ul className="auth-error-list">{hatalar.map((h, i) => <li key={i}>{h}</li>)}</ul>
                 )}
               </div>
             )}
             <div className="form-row">
-              <label>Ad<input name="ad" value={form.ad} onChange={handleChange} required placeholder="Öğuz" /></label>
-              <label>Soyad<input name="soyad" value={form.soyad} onChange={handleChange} required placeholder="Kara" /></label>
+              <label>Ad<input name="ad" value={form.ad} onChange={handleChange} required /></label>
+              <label>Soyad<input name="soyad" value={form.soyad} onChange={handleChange} required /></label>
             </div>
-            <label>E-posta<input type="email" name="email" value={form.email} onChange={handleChange} required placeholder="ornek@mail.com" /></label>
-            <label>Şifre<span className="label-hint">En az 6 karakter</span><input type="password" name="sifre" value={form.sifre} onChange={handleChange} required minLength={6} /></label>
-            <label>Telefon <span className="label-hint">İsteğe bağlı</span><input name="telefon" value={form.telefon} onChange={handleChange} placeholder="05xx xxx xx xx" /></label>
-            <label>Adres<textarea name="adres" value={form.adres} onChange={handleChange} rows={2} placeholder="Teslimat adresiniz" /></label>
-            <label>Mahalle<input name="konum" value={form.konum} onChange={handleChange} placeholder="Çünür, İyaş, Merkez..." /></label>
-            <button type="submit" className="auth-submit" disabled={yukleniyor}>
+            <label>E-posta<input type="email" name="email" value={form.email} onChange={handleChange} required /></label>
+            <label>Şifre<input type="password" name="sifre" value={form.sifre} onChange={handleChange} required minLength={6} /></label>
+            <label>Telefon<input name="telefon" value={form.telefon} onChange={handleChange} placeholder="05xx xxx xx xx" /></label>
+            {!saticiMod && (
+              <>
+                <label>Adres<textarea name="adres" value={form.adres} onChange={handleChange} rows={2} /></label>
+                <label>Mahalle<input name="konum" value={form.konum} onChange={handleChange} placeholder="Çünür, Merkez..." /></label>
+              </>
+            )}
+            <button type="submit" className={`auth-submit ${saticiMod ? 'seller-submit' : ''}`} disabled={yukleniyor}>
               {yukleniyor ? 'Kayıt oluşturuluyor...' : 'Kayıt Ol'}
             </button>
-            <p className="auth-alt">Zaten hesabınız var mı? <Link to="/giris">Giriş yapın</Link></p>
+            <p className="auth-alt auth-portal-note">Kayıt sonrası e-postanıza doğrulama kodu gönderilir.</p>
+            <p className="auth-alt">Zaten hesabınız var mı? <Link to={`/giris?portal=${portal}`}>Giriş yapın</Link></p>
           </form>
         </div>
       </main>
-    </Layout>
+    </AuthShellLayout>
   );
 }

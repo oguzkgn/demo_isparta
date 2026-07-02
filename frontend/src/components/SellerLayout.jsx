@@ -34,7 +34,7 @@ export default function SellerLayout({ children }) {
                 <button type="button" className="seller-btn outline" onClick={handleCikis}>Çıkış</button>
               </>
             ) : (
-              <Link to="/satici/giris" className="seller-btn">Satıcı Girişi</Link>
+              <Link to="/giris?portal=satici" className="seller-btn">Satıcı Girişi</Link>
             )}
           </div>
         </div>
@@ -42,6 +42,7 @@ export default function SellerLayout({ children }) {
       {children}
       <footer className="seller-footer">
         <p>demo Satıcı — Isparta&apos;da ürünlerinizi satışa koyun</p>
+        <p className="seller-footer-note">Satıcı ve müşteri hesapları ayrıdır; alışveriş için müşteri sitesine geçiş yapılmaz.</p>
       </footer>
     </div>
   );

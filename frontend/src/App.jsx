@@ -15,12 +15,14 @@ import VendorApplyPage from './pages/VendorApplyPage';
 import SellerPanelPage from './pages/SellerPanelPage';
 import SellerLoginPage from './pages/SellerLoginPage';
 import AdminReviewsPage from './pages/AdminReviewsPage';
+import EmailVerifyPage from './pages/EmailVerifyPage';
 import AnimatedBackground from './components/AnimatedBackground';
 import './App.css';
 
 function AppRoutes() {
   const location = useLocation();
   const saticiSayfasi = location.pathname.startsWith('/satici');
+  const authSayfasi = ['/giris', '/kayit', '/eposta-dogrula'].includes(location.pathname);
   const [arama, setArama] = useState('');
   const [kategori, setKategori] = useState('');
   const [konum, setKonum] = useState('');
@@ -28,12 +30,13 @@ function AppRoutes() {
 
   return (
     <>
-      {!saticiSayfasi && <AnimatedBackground />}
+      {!saticiSayfasi && !authSayfasi && <AnimatedBackground />}
       <Routes>
         <Route path="/" element={<HomePage {...shared} />} />
         <Route path="/urun/:id" element={<ProductPage {...shared} />} />
-        <Route path="/giris" element={<LoginPage {...shared} />} />
-        <Route path="/kayit" element={<RegisterPage {...shared} />} />
+        <Route path="/giris" element={<LoginPage />} />
+        <Route path="/kayit" element={<RegisterPage />} />
+        <Route path="/eposta-dogrula" element={<EmailVerifyPage />} />
         <Route path="/profil" element={<ProfilePage {...shared} />} />
         <Route path="/favoriler" element={<FavoritesPage {...shared} />} />
         <Route path="/siparisler" element={<OrdersPageWrapper {...shared} />} />

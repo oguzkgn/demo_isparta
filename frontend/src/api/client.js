@@ -43,6 +43,9 @@ export const trackRecent = (urunId) => api.post(`/api/ara/son-gorulen/${urunId}`
 export const register = (data) => api.post('/api/auth/kayit', data).then((r) => r.data);
 export const registerSeller = (data) => api.post('/api/auth/satici-kayit', data).then((r) => r.data);
 export const login = (data) => api.post('/api/auth/giris', data).then((r) => r.data);
+export const verifyEmail = (data) => api.post('/api/auth/eposta-dogrula', data).then((r) => r.data);
+export const resendVerification = (email) =>
+  api.post('/api/auth/eposta-dogrula/yeniden', { email }).then((r) => r.data);
 export const loginGoogle = (data) => api.post('/api/auth/google', data).then((r) => r.data);
 export const loginApple = (data) => api.post('/api/auth/apple', data).then((r) => r.data);
 export const fetchProfile = () => api.get('/api/auth/profil').then((r) => r.data);

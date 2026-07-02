@@ -689,6 +689,119 @@
   font-weight: 500;
 }
 
+.footer-seller-portal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1.5px solid rgba(27, 67, 50, 0.25);
+  background: rgba(232, 245, 238, 0.85);
+  color: var(--seller-green, #1b4332);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.footer-seller-portal:hover {
+  background: #d8f3dc;
+  border-color: var(--seller-green, #1b4332);
+}
+
+.auth-portal-note {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.auth-portal-note a {
+  color: var(--seller-green, #1b4332);
+  font-weight: 600;
+}
+
+.auth-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #f0f4f8 0%, #fff 40%, #e8f5ee 100%);
+}
+
+.auth-shell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.auth-shell-logo {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--purple);
+  text-decoration: none;
+}
+
+.auth-shell-tag {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.auth-shell-main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem 3rem;
+}
+
+.auth-shell-footer {
+  text-align: center;
+  padding: 1.25rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.portal-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.portal-toggle button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.7rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.portal-toggle button.active {
+  border-color: var(--purple);
+  background: var(--purple-light);
+  color: var(--purple);
+}
+
+.portal-toggle button.seller.active {
+  border-color: var(--seller-green);
+  background: #d8f3dc;
+  color: var(--seller-green);
+}
+
 .page-title {
   font-family: var(--font-display);
   font-size: 1.85rem;
@@ -1899,6 +2012,12 @@
   padding: 2rem;
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+.seller-footer-note {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  opacity: 0.85;
 }
 
 .seller-portal .auth-portal-badge {

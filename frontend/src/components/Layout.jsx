@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { searchProducts } from '../api/client';
 import { asArray } from '../utils/safe';
-import { IconCart, IconHeart, IconPackage, IconSearch, IconTag, IconUser } from './icons/Icons';
+import { IconCart, IconHeart, IconPackage, IconSearch, IconStore, IconTag, IconUser } from './icons/Icons';
 import CartPanel from './CartPanel';
 import CustomerGuard from './CustomerGuard';
 
@@ -124,6 +124,10 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
       <footer className="footer">
         <p className="footer-brand"><strong>demo</strong> — Isparta&apos;nın yerel alışveriş platformu</p>
         <p className="footer-locations">Çünür · İyaş · Merkez · Lavanta Vadisi</p>
+        <Link to="/giris?portal=satici" className="footer-seller-portal">
+          <IconStore size={16} />
+          Satıcı Paneli — ayrı giriş
+        </Link>
       </footer>
 
       <CartPanel />

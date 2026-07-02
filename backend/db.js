@@ -27,9 +27,12 @@ async function seedVerileri() {
   if (!admin) {
     admin = await User.create({
       ad: 'Admin', soyad: 'Demo', email: 'admin@demo-isparta.com',
-      sifre: 'admin123', rol: 'admin'
+      sifre: 'admin123', rol: 'admin', emailDogrulandi: true
     });
     console.log('[Demo] Admin kullanıcı: admin@demo-isparta.com / admin123');
+  } else if (!admin.emailDogrulandi) {
+    admin.emailDogrulandi = true;
+    await admin.save();
   }
 
   let vendor = await Vendor.findOne({ magazaAdi: 'Demo Mağaza Isparta' });

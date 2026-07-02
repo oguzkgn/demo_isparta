@@ -41,6 +41,7 @@ async function ensureInit() {
     email: 'admin@demo-isparta.com',
     sifreHash: hash,
     rol: 'admin',
+    emailDogrulandi: true,
     telefon: '',
     adres: '',
     konum: '',
@@ -121,6 +122,7 @@ async function kullaniciKayit(data) {
     adres: data.adres || '',
     konum: data.konum || '',
     rol: 'kullanici',
+    emailDogrulandi: false,
     sepet: [],
     favoriler: [],
     sonGorulenler: [],
@@ -159,6 +161,7 @@ async function kullaniciBulVeyaOlustur({ email, ad, soyad, googleId, appleId }) 
       rol: 'kullanici',
       googleId: googleId || undefined,
       appleId: appleId || undefined,
+      emailDogrulandi: false,
       sepet: [],
       favoriler: [],
       sonGorulenler: [],
@@ -367,6 +370,29 @@ function saticiUrunSil(userId, urunId) {
   return true;
 }
 
+function kullaniciEmailIle(email) {
+  return [...users.values()].find((u) => u.email === email.toLowerCase()) || null;
+}
+
+function kullaniciDogrulamaAta(email) {
+  const user = kullaniciEmailIle(email);
+  if (!user) return null;
+  const { kodAta } = require('./emailDogrulama');
+  kodAta(user);
+  users.set(user._id, user);
+  return sanitizeUser(user);
+}
+
+function kullaniciDogrula(email, kod) {
+  const user = kullaniciEmailIle(email);
+  if (!user) return null;
+  const { kodDogrula, dogrulamaTamamla } = require('./emailDogrulama');
+  if (!kodDogrula(user, kod)) return null;
+  dogrulamaTamamla(user);
+  users.set(user._id, user);
+  return sanitizeUser(user);
+}
+
 function saticiSiparisleri(userId) {
   return [];
 }
@@ -381,6 +407,9 @@ module.exports = {
   kullaniciGiris,
   kullaniciBulVeyaOlustur,
   kullaniciGetir,
+  kullaniciEmailIle,
+  kullaniciDogrulamaAta,
+  kullaniciDogrula,
   sepetGetir,
   sepeteEkle,
   sepetGuncelle,

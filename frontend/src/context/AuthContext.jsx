@@ -1,7 +1,15 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { login as apiLogin, register as apiRegister, loginGoogle, loginApple, fetchProfile, deleteAccount as apiDeleteAccount } from '../api/client';
+import {
+  login as apiLogin, register as apiRegister, loginGoogle, loginApple,
+  fetchProfile, deleteAccount as apiDeleteAccount, verifyEmail
+} from '../api/client';
 
 const AuthContext = createContext(null);
+
+function oturumKaydet(data) {
+  if (data?.token) localStorage.setItem('demo-token', data.token);
+  return data?.kullanici;
+}
 
 export function AuthProvider({ children }) {
   const [kullanici, setKullanici] = useState(null);
@@ -16,9 +24,14 @@ export function AuthProvider({ children }) {
     try {
       const profil = await fetchProfile();
       setKullanici(profil);
-    } catch {
-      localStorage.removeItem('demo-token');
-      setKullanici(null);
+    } catch (err) {
+      if (err.response?.data?.kod === 'EPOSTA_DOGRULANMADI') {
+        setKullanici(null);
+        localStorage.removeItem('demo-token');
+      } else {
+        localStorage.removeItem('demo-token');
+        setKullanici(null);
+      }
     } finally {
       setYukleniyor(false);
     }
@@ -27,17 +40,19 @@ export function AuthProvider({ children }) {
   useEffect(() => { oturumuYukle(); }, [oturumuYukle]);
 
   const girisYap = async (email, sifre) => {
-    const { kullanici: u, token } = await apiLogin({ email, sifre });
-    localStorage.setItem('demo-token', token);
+    const data = await apiLogin({ email, sifre });
+    const u = oturumKaydet(data);
     setKullanici(u);
     return u;
   };
 
-  const kayitOl = async (data) => {
-    const { kullanici: u, token } = await apiRegister(data);
-    localStorage.setItem('demo-token', token);
+  const kayitOl = async (formData) => apiRegister(formData);
+
+  const epostaDogrula = async (email, kod) => {
+    const data = await verifyEmail({ email, kod });
+    const u = oturumKaydet(data);
     setKullanici(u);
-    return u;
+    return data;
   };
 
   const cikisYap = () => {
@@ -52,15 +67,15 @@ export function AuthProvider({ children }) {
   };
 
   const googleGiris = async (email, ad, soyad) => {
-    const { kullanici: u, token } = await loginGoogle({ email, ad, soyad, googleId: `google_${email}` });
-    localStorage.setItem('demo-token', token);
+    const data = await loginGoogle({ email, ad, soyad, googleId: `google_${email}` });
+    const u = oturumKaydet(data);
     setKullanici(u);
     return u;
   };
 
-  const appleGiris = async () => {
-    const { kullanici: u, token } = await loginApple({ appleId: `apple_${Date.now()}`, ad: 'Apple', soyad: 'Kullanıcı' });
-    localStorage.setItem('demo-token', token);
+  const appleGiris = async (email, ad = 'Apple', soyad = 'Kullanıcı') => {
+    const data = await loginApple({ email, ad, soyad, appleId: `apple_${email}` });
+    const u = oturumKaydet(data);
     setKullanici(u);
     return u;
   };
@@ -80,7 +95,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      kullanici, yukleniyor, girisYap, kayitOl, googleGiris, appleGiris,
+      kullanici, yukleniyor, girisYap, kayitOl, epostaDogrula, googleGiris, appleGiris,
       cikisYap, hesabiSil, oturumuYukle, profilYenile, kullaniciGuncelle
     }}>
       {children}
