@@ -1,6 +1,8 @@
 # demo_isparta
 
-Isparta'nın yerel alışveriş platformu — Trendyol tarzı, pembe/mor tema, lavanta & gül detayları.
+*Isparta'nın yerel alışveriş platformu* 
+
+Trendyol tarzında bir alışveriş platformu olarak tasarladım amacım yerel firmaları şirketleri vb.ticaret firmalarının e ticarete ayak uydurabilmesi ve teknolojiye adapte olma süreçlerinin hızlandırılması
 
 ## Proje yapısı
 
