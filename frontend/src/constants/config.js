@@ -1,19 +1,17 @@
 const RENDER_API = 'https://demo-isparta.onrender.com';
 
-const getBaseUrl = () => {
+/** Runtime API kökü — Vercel external rewrite POST desteklemediği için doğrudan Render kullanılır */
+export function getApiBaseUrl() {
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    // Production/dev: aynı origin — /api Vercel veya vite proxy ile Render'a gider
-    if (host.includes('vercel.app') || host === 'localhost' || host === '127.0.0.1') {
-      return '';
-    }
+    if (host === 'localhost' || host === '127.0.0.1') return '';
   }
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  if (typeof window !== 'undefined') return window.location.origin;
   return RENDER_API;
-};
+}
 
-export const API_URL = getBaseUrl();
+/** @deprecated getApiBaseUrl() kullanın */
+export const API_URL = getApiBaseUrl();
 
 export const ISPARTA_KONUMLAR = [
   '⭐ Çünür (Kampüs Bölgesi)',

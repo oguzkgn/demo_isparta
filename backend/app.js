@@ -58,10 +58,16 @@ const distPath = path.join(__dirname, '../frontend/dist');
 
 const hasFrontend = fs.existsSync(path.join(distPath, 'index.html'));
 
+const corsSecenekleri = {
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 204
+};
 
-
-app.use(cors({ origin: true }));
-
+app.use(cors(corsSecenekleri));
+app.options(/.*/, cors(corsSecenekleri));
 app.use(express.json({ limit: '5mb' }));
 
 

@@ -1,12 +1,12 @@
 import axios from 'axios';
-import { API_URL } from '../constants/config';
+import { getApiBaseUrl } from '../constants/config';
 import { asArray } from '../utils/safe';
 
 const COLD_START_TIMEOUT = 90000;
 const MAX_RETRY = 3;
 const RETRY_DELAY_MS = 4000;
 
-const api = axios.create({ baseURL: API_URL, timeout: COLD_START_TIMEOUT });
+const api = axios.create({ timeout: COLD_START_TIMEOUT });
 
 function yenidenDenenebilirMi(err) {
   if (err.response) return false;
@@ -22,6 +22,7 @@ function bekle(ms) {
 }
 
 api.interceptors.request.use((config) => {
+  config.baseURL = getApiBaseUrl();
   const token = localStorage.getItem('demo-token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;

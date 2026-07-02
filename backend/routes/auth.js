@@ -22,42 +22,58 @@ function epostaDogrulanmadi(res, email, mesaj) {
   });
 }
 
-async function dogrulamaGonder(userDoc) {
+async function dogrulamaKoduKaydet(userDoc) {
   kodAta(userDoc);
   if (typeof userDoc.save === 'function') await userDoc.save();
-  await dogrulamaMailiGonder(userDoc);
+  return userDoc;
+}
+
+async function dogrulamaMailiGuvenliGonder(userDoc) {
+  try {
+    await dogrulamaMailiGonder(userDoc);
+    return true;
+  } catch (error) {
+    console.error('Mail gönderim hatası:', error);
+    return false;
+  }
+}
+
+async function dogrulamaGonder(userDoc) {
+  await dogrulamaKoduKaydet(userDoc);
+  await dogrulamaMailiGuvenliGonder(userDoc);
   return userDoc;
 }
 
 async function kayitSonrasiDogrulama(res, { mongoId, email }) {
   try {
+    let mailGonderildi = false;
+
     if (dbBagli() && mongoId) {
       const user = await User.findById(mongoId);
       if (!user) throw new Error('Kullanıcı bulunamadı');
-      await dogrulamaGonder(user);
+      await dogrulamaKoduKaydet(user);
+      mailGonderildi = await dogrulamaMailiGuvenliGonder(user);
     } else {
-      const u = memoryStore.kullaniciDogrulamaAta(email);
-      if (!u) throw new Error('Kullanıcı bulunamadı');
-      await dogrulamaMailiGonder(memoryStore.kullaniciHamEmailIle(email));
+      memoryStore.kullaniciDogrulamaAta(email);
+      const ham = memoryStore.kullaniciHamEmailIle(email);
+      if (!ham) throw new Error('Kullanıcı bulunamadı');
+      mailGonderildi = await dogrulamaMailiGuvenliGonder(ham);
     }
+
     return res.status(201).json({
-      mesaj: 'Kayıt oluşturuldu. E-postanıza doğrulama kodu gönderildi.',
+      mesaj: mailGonderildi
+        ? 'Kayıt oluşturuldu. E-postanıza doğrulama kodu gönderildi.'
+        : 'Kayıt oluşturuldu. Doğrulama e-postası şu an gönderilemedi; «Kodu yeniden gönder» ile tekrar deneyin.',
       email,
       emailDogrulandi: false,
+      mailGonderildi,
       islemKodu: 'EPOSTA_BEKLENIYOR'
     });
   } catch (err) {
-    console.error('[Demo] Kayıt doğrulama e-postası:', err.message);
-    if (mongoId && dbBagli()) {
-      await User.findByIdAndDelete(mongoId).catch(() => {});
-    }
-    memoryStore.kullaniciSilEmail(email);
-    const smtpYok = err.kod === 'SMTP_YOK';
-    return res.status(503).json({
-      mesaj: smtpYok
-        ? 'E-posta servisi yapılandırılmamış. Kayıt tamamlanamadı.'
-        : 'Doğrulama e-postası gönderilemedi. Kayıt tamamlanamadı.',
-      kod: smtpYok ? 'SMTP_YOK' : 'EPOSTA_GONDERILEMEDI'
+    console.error('[Demo] Kayıt sonrası işlem hatası:', err.message);
+    return res.status(500).json({
+      mesaj: err.message || 'Kayıt tamamlanamadı.',
+      kod: 'SUNUCU'
     });
   }
 }
@@ -68,23 +84,13 @@ async function mongoKullaniciBulEmail(email) {
 
 async function girisOncesiDogrulama(user, res, next) {
   if (epostaDogrulandiMi(user)) return next();
-  try {
-    if (dbBagli() && user._id && !memoryStore.isMemoryUser(user._id)) {
-      const doc = await User.findById(user._id);
-      if (doc) await dogrulamaGonder(doc);
-    } else {
-      memoryStore.kullaniciDogrulamaAta(user.email);
-      const u = memoryStore.kullaniciEmailIle(user.email);
-      if (u) await dogrulamaMailiGonder(memoryStore.kullaniciHamEmailIle(user.email));
-    }
-  } catch (err) {
-    console.error('[Demo] doğrulama maili:', err.message);
-    return res.status(503).json({
-      mesaj: err.kod === 'SMTP_YOK'
-        ? 'E-posta servisi yapılandırılmamış.'
-        : 'Doğrulama e-postası gönderilemedi.',
-      kod: err.kod === 'SMTP_YOK' ? 'SMTP_YOK' : 'EPOSTA_GONDERILEMEDI'
-    });
+  if (dbBagli() && user._id && !memoryStore.isMemoryUser(user._id)) {
+    const doc = await User.findById(user._id);
+    if (doc) await dogrulamaGonder(doc);
+  } else {
+    memoryStore.kullaniciDogrulamaAta(user.email);
+    const u = memoryStore.kullaniciEmailIle(user.email);
+    if (u) await dogrulamaMailiGuvenliGonder(memoryStore.kullaniciHamEmailIle(user.email));
   }
   return epostaDogrulanmadi(res, user.email, 'E-posta doğrulanmamış. Gelen kutunuzdaki kodu girin.');
 }
@@ -230,27 +236,23 @@ router.post('/eposta-dogrula/yeniden', async (req, res) => {
           return res.status(400).json({ mesaj: 'E-posta zaten doğrulanmış.' });
         }
         await dogrulamaGonder(user);
-        return res.json({ mesaj: 'Doğrulama kodu yeniden gönderildi.', email: user.email });
+        return res.json({
+          mesaj: 'Doğrulama kodu yeniden gönderildi (veya e-posta servisi geçici olarak yanıt vermedi).',
+          email: user.email
+        });
       } catch (err) {
         console.error('[Demo] Mongo yeniden gönder:', err.message);
-        return res.status(503).json({
-          mesaj: err.kod === 'SMTP_YOK' ? 'E-posta servisi yapılandırılmamış.' : 'Kod gönderilemedi.',
-          kod: err.kod === 'SMTP_YOK' ? 'SMTP_YOK' : 'EPOSTA_GONDERILEMEDI'
-        });
+        return res.status(500).json({ mesaj: 'Kod güncellenemedi.', kod: 'SUNUCU' });
       }
     }
 
     const user = memoryStore.kullaniciDogrulamaAta(email);
     if (!user) return res.status(404).json({ mesaj: 'Hesap bulunamadı.' });
-    try {
-      await dogrulamaMailiGonder(memoryStore.kullaniciHamEmailIle(email) || user);
-      return res.json({ mesaj: 'Doğrulama kodu yeniden gönderildi.', email: user.email });
-    } catch (err) {
-      return res.status(503).json({
-        mesaj: err.kod === 'SMTP_YOK' ? 'E-posta servisi yapılandırılmamış.' : 'Kod gönderilemedi.',
-        kod: err.kod === 'SMTP_YOK' ? 'SMTP_YOK' : 'EPOSTA_GONDERILEMEDI'
-      });
-    }
+    await dogrulamaMailiGuvenliGonder(memoryStore.kullaniciHamEmailIle(email) || user);
+    return res.json({
+      mesaj: 'Doğrulama kodu yeniden gönderildi (veya e-posta servisi geçici olarak yanıt vermedi).',
+      email: user.email
+    });
   } catch {
     res.status(500).json({ mesaj: 'Kod gönderilemedi.' });
   }
@@ -284,16 +286,8 @@ async function sosyalGiris(req, res, { email, ad, soyad, googleId, appleId }) {
         await user.save();
       }
       if (yeniHesap || !epostaDogrulandiMi(user)) {
-        try {
-          await dogrulamaGonder(user);
-        } catch (err) {
-          if (yeniHesap) await User.findByIdAndDelete(user._id).catch(() => {});
-          return res.status(503).json({
-            mesaj: err.kod === 'SMTP_YOK' ? 'E-posta servisi yapılandırılmamış.' : 'Doğrulama e-postası gönderilemedi.',
-            kod: err.kod === 'SMTP_YOK' ? 'SMTP_YOK' : 'EPOSTA_GONDERILEMEDI'
-          });
-        }
-        return epostaDogrulanmadi(res, user.email, 'Doğrulama kodu e-postanıza gönderildi.');
+        await dogrulamaGonder(user);
+        return epostaDogrulanmadi(res, user.email, 'Doğrulama kodu e-postanıza gönderildi (veya «Kodu yeniden gönder» ile tekrar deneyin).');
       }
       return kullaniciDon(res, user, tokenOlustur(user._id));
     } catch (err) {
@@ -305,8 +299,8 @@ async function sosyalGiris(req, res, { email, ad, soyad, googleId, appleId }) {
   if (!epostaDogrulandiMi(user)) {
     memoryStore.kullaniciDogrulamaAta(user.email);
     const u = memoryStore.kullaniciEmailIle(user.email);
-    if (u) await dogrulamaMailiGonder(memoryStore.kullaniciHamEmailIle(user.email));
-    return epostaDogrulanmadi(res, user.email, 'Doğrulama kodu e-postanıza gönderildi.');
+    if (u) await dogrulamaMailiGuvenliGonder(memoryStore.kullaniciHamEmailIle(user.email));
+    return epostaDogrulanmadi(res, user.email, 'Doğrulama kodu e-postanıza gönderildi (veya «Kodu yeniden gönder» ile tekrar deneyin).');
   }
   kullaniciDon(res, user, tokenOlustur(user._id));
 }

@@ -38,6 +38,9 @@ export function apiHataMesaji(err, varsayilan = 'Bir hata oluştu.') {
     }
     return 'API sunucusuna bağlanılamadı. İnternet bağlantınızı kontrol edin.';
   }
+  if (err.response.status === 405) {
+    return 'Sunucu bu isteği kabul etmedi (405 Method Not Allowed). Sayfayı yenileyip tekrar deneyin.';
+  }
   const data = err.response.data;
   if (Array.isArray(data?.hatalar) && data.hatalar.length) {
     return data.hatalar.join(' ');
