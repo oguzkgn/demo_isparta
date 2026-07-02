@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_URL } from '../constants/config';
+import { asArray } from '../utils/safe';
 
 const api = axios.create({ baseURL: API_URL, timeout: 30000 });
 
@@ -19,15 +20,24 @@ api.interceptors.response.use(
   }
 );
 
-export const fetchProducts = (params) => api.get('/api/urunler', { params }).then((r) => r.data);
+export const fetchProducts = (params) =>
+  api.get('/api/urunler', { params }).then((r) => asArray(r.data));
 export const fetchProduct = (id) => api.get(`/api/urunler/${id}`).then((r) => r.data);
-export const fetchCategories = () => api.get('/api/kategoriler').then((r) => r.data);
-export const fetchCategoryTree = () => api.get('/api/kategoriler/agac').then((r) => r.data);
-export const fetchBrands = () => api.get('/api/markalar').then((r) => r.data);
-export const fetchLocations = () => api.get('/api/konumlar').then((r) => r.data);
+export const fetchCategories = () =>
+  api.get('/api/kategoriler').then((r) => asArray(r.data));
+export const fetchCategoryTree = () =>
+  api.get('/api/kategoriler/agac').then((r) => asArray(r.data));
+export const fetchBrands = () =>
+  api.get('/api/markalar').then((r) => asArray(r.data));
+export const fetchLocations = () =>
+  api.get('/api/konumlar').then((r) => asArray(r.data));
 
-export const searchProducts = (q) => api.get('/api/ara', { params: { q } }).then((r) => r.data);
-export const fetchRecent = () => api.get('/api/ara/son-gorulen').then((r) => r.data);
+export const searchProducts = (q) => api.get('/api/ara', { params: { q } }).then((r) => ({
+  urunler: asArray(r.data?.urunler),
+  oneriler: asArray(r.data?.oneriler)
+}));
+export const fetchRecent = () =>
+  api.get('/api/ara/son-gorulen').then((r) => asArray(r.data));
 export const trackRecent = (urunId) => api.post(`/api/ara/son-gorulen/${urunId}`).then((r) => r.data);
 
 export const register = (data) => api.post('/api/auth/kayit', data).then((r) => r.data);
@@ -42,32 +52,33 @@ export const deletePhone = () => api.delete('/api/auth/telefon').then((r) => r.d
 export const changePassword = (data) => api.put('/api/auth/sifre', data).then((r) => r.data);
 export const deleteAccount = () => api.delete('/api/auth/hesap').then((r) => r.data);
 
-export const fetchAddresses = () => api.get('/api/auth/adresler').then((r) => r.data);
+export const fetchAddresses = () => api.get('/api/auth/adresler').then((r) => asArray(r.data));
 export const addAddress = (data) => api.post('/api/auth/adresler', data).then((r) => r.data);
 export const updateAddress = (id, data) => api.put(`/api/auth/adresler/${id}`, data).then((r) => r.data);
 export const deleteAddress = (id) => api.delete(`/api/auth/adresler/${id}`).then((r) => r.data);
 
-export const fetchCart = () => api.get('/api/sepet').then((r) => r.data);
+export const fetchCart = () => api.get('/api/sepet').then((r) => asArray(r.data));
 export const addToCart = (urunId, adet = 1, beden, renk) =>
   api.post('/api/sepet', { urunId, adet, beden, renk }).then((r) => r.data);
 export const updateCartItem = (urunId, adet) => api.patch(`/api/sepet/${urunId}`, { adet }).then((r) => r.data);
 export const removeFromCart = (urunId) => api.delete(`/api/sepet/${urunId}`).then((r) => r.data);
 
-export const fetchFavorites = () => api.get('/api/favoriler').then((r) => r.data);
+export const fetchFavorites = () => api.get('/api/favoriler').then((r) => asArray(r.data));
 export const addFavorite = (urunId) => api.post(`/api/favoriler/${urunId}`).then((r) => r.data);
 export const removeFavorite = (urunId) => api.delete(`/api/favoriler/${urunId}`).then((r) => r.data);
 
-export const fetchOrders = () => api.get('/api/siparisler').then((r) => r.data);
+export const fetchOrders = () => api.get('/api/siparisler').then((r) => asArray(r.data));
 export const fetchOrder = (id) => api.get(`/api/siparisler/${id}`).then((r) => r.data);
 export const createOrder = (data) => api.post('/api/siparisler', data).then((r) => r.data);
 export const cancelOrder = (id) => api.patch(`/api/siparisler/${id}/iptal`).then((r) => r.data);
 
-export const fetchReviews = (urunId) => api.get(`/api/yorumlar/urun/${urunId}`).then((r) => r.data);
+export const fetchReviews = (urunId) =>
+  api.get(`/api/yorumlar/urun/${urunId}`).then((r) => asArray(r.data));
 export const addReview = (urunId, data) => api.post(`/api/yorumlar/urun/${urunId}`, data).then((r) => r.data);
 export const fetchPendingReviews = () => api.get('/api/yorumlar/bekleyen').then((r) => r.data);
 export const approveReview = (id) => api.patch(`/api/yorumlar/${id}/onay`).then((r) => r.data);
 
-export const fetchCoupons = () => api.get('/api/kuponlar').then((r) => r.data);
+export const fetchCoupons = () => api.get('/api/kuponlar').then((r) => asArray(r.data));
 export const validateCoupon = (kod, araToplam) => api.post('/api/kuponlar/dogrula', { kod, araToplam }).then((r) => r.data);
 export const processPayment = (data) => api.post('/api/odeme/odeme', data).then((r) => r.data);
 

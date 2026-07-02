@@ -1,7 +1,15 @@
+const RENDER_API = 'https://demo-isparta.onrender.com';
+
 const getBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  if (typeof window !== 'undefined') return window.location.origin;
-  return 'http://localhost:5002';
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.includes('vercel.app') || host.includes('localhost')) {
+      return host.includes('localhost') ? '' : RENDER_API;
+    }
+    return window.location.origin;
+  }
+  return RENDER_API;
 };
 
 export const API_URL = getBaseUrl();

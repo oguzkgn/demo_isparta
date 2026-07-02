@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchCart, addToCart, removeFromCart, updateCartItem, createOrder } from '../api/client';
+import { asArray } from '../utils/safe';
 
 const CartContext = createContext(null);
 
@@ -23,8 +24,8 @@ export function CartProvider({ children }) {
       return;
     }
     try {
-      const data = await fetchCart();
-      setSepet(data.map((x) => ({ ...x.urun, adet: x.adet, sepetUrunId: x.urun._id })));
+      const data = asArray(await fetchCart());
+      setSepet(data.map((x) => ({ ...x.urun, adet: x.adet, sepetUrunId: x.urun?._id })).filter((x) => x._id));
     } catch {
       setSepet([]);
     }

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { searchProducts } from '../api/client';
+import { asArray } from '../utils/safe';
 import CartPanel from './CartPanel';
 
 export default function Layout({ children, kategoriler, kategori, setKategori, arama, setArama, onAra, konumlar, konum, setKonum }) {
@@ -17,7 +18,7 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
     if (!arama || arama.length < 2) { setOneriler([]); return; }
     const t = setTimeout(() => {
       searchProducts(arama)
-        .then((r) => setOneriler(r.oneriler || []))
+        .then((r) => setOneriler(asArray(r?.oneriler)))
         .catch(() => setOneriler([]));
     }, 300);
     return () => clearTimeout(t);
@@ -47,9 +48,9 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
               />
               <button type="submit">Ara</button>
             </form>
-            {oneriAcik && oneriler.length > 0 && (
+            {oneriAcik && Array.isArray(oneriler) && oneriler.length > 0 && (
               <div className="search-suggestions">
-                {oneriler.map((o, i) => (
+                {oneriler.slice(0, 5).map((o, i) => (
                   <button key={i} type="button" onClick={() => oneriSec(o)}>
                     {o.tip === 'marka' ? '🏷️' : '🔍'} {o.metin}
                   </button>
@@ -57,7 +58,7 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
               </div>
             )}
           </div>
-          {konumlar?.length > 0 && (
+          {Array.isArray(konumlar) && konumlar.length > 0 && (
             <select className="location-select" value={konum} onChange={(e) => setKonum(e.target.value)}>
               <option value="">📍 Tüm Mahalleler</option>
               {konumlar.map((k) => <option key={k} value={k}>{k}</option>)}
@@ -83,7 +84,7 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
             </button>
           </div>
         </div>
-        {kategoriler && (
+        {Array.isArray(kategoriler) && (
           <div className="category-bar">
             <button type="button" className={`cat-chip ${!kategori ? 'active' : ''}`} onClick={() => setKategori('')}>
               Tümü

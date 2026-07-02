@@ -4,6 +4,7 @@ import { fetchProducts, fetchCategories, fetchLocations, fetchRecent, fetchBrand
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { formatPrice } from '../utils/format';
+import { asArray } from '../utils/safe';
 import Layout from '../components/Layout';
 
 function ProductCard({ u, sepeteEkle }) {
@@ -44,18 +45,24 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
 
   useEffect(() => {
     Promise.all([fetchCategories(), fetchLocations(), fetchBrands()])
-      .then(([k, l, m]) => { setKategoriler(k); setKonumlar(l); setMarkalar(m); })
+      .then(([k, l, m]) => {
+        setKategoriler(asArray(k));
+        setKonumlar(asArray(l));
+        setMarkalar(asArray(m));
+      })
       .catch(() => {});
   }, []);
 
   useEffect(() => {
     if (kullanici) {
-      fetchRecent().then(setSonGorulen).catch(() => {});
+      fetchRecent().then((data) => setSonGorulen(asArray(data))).catch(() => setSonGorulen([]));
     }
   }, [kullanici]);
 
   useEffect(() => {
-    fetchProducts({ oneCikan: 'true' }).then(setOneCikan).catch(() => {});
+    fetchProducts({ oneCikan: 'true' })
+      .then((data) => setOneCikan(asArray(data)))
+      .catch(() => setOneCikan([]));
   }, []);
 
   const urunleriGetir = useCallback(() => {
@@ -70,7 +77,7 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
     if (filtre.maxFiyat) params.maxFiyat = filtre.maxFiyat;
     if (filtre.minPuan) params.minPuan = filtre.minPuan;
     fetchProducts(params)
-      .then(setUrunler)
+      .then((data) => setUrunler(asArray(data)))
       .catch(() => setUrunler([]))
       .finally(() => setYukleniyor(false));
   }, [kategori, konum, arama, siralama, filtre]);
@@ -104,7 +111,7 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
         </div>
       </section>
 
-      {!kategori && !arama && oneCikan.length > 0 && (
+      {!kategori && !arama && Array.isArray(oneCikan) && oneCikan.length > 0 && (
         <section className="section-block">
           <h2 className="section-title">⚡ Flaş Ürünler</h2>
           <div className="product-grid compact">
@@ -115,7 +122,7 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
         </section>
       )}
 
-      {sonGorulen.length > 0 && !arama && (
+      {Array.isArray(sonGorulen) && sonGorulen.length > 0 && !arama && (
         <section className="section-block">
           <h2 className="section-title">👁️ Son Baktıklarınız</h2>
           <div className="product-grid compact">
@@ -128,7 +135,7 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
 
       <section className="section-block">
         <div className="category-grid">
-          {kategoriler.map((k) => (
+          {Array.isArray(kategoriler) && kategoriler.map((k) => (
             <button
               key={k.id}
               type="button"
@@ -148,7 +155,7 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
           <label>Marka
             <select value={filtre.marka} onChange={(e) => setFiltre({ ...filtre, marka: e.target.value })}>
               <option value="">Tümü</option>
-              {markalar.map((m) => <option key={m} value={m}>{m}</option>)}
+              {Array.isArray(markalar) && markalar.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </label>
           <label>Min Fiyat<input type="number" value={filtre.minFiyat} onChange={(e) => setFiltre({ ...filtre, minFiyat: e.target.value })} /></label>
@@ -169,12 +176,12 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
             <option value="fiyatAzalan">Fiyat: Azalan</option>
             <option value="puan">En Yüksek Puan</option>
           </select>
-          <span className="product-count">{urunler.length} ürün listeleniyor</span>
+          <span className="product-count">{Array.isArray(urunler) ? urunler.length : 0} ürün listeleniyor</span>
         </div>
 
         {yukleniyor ? (
           <div className="loading">Ürünler yükleniyor...</div>
-        ) : urunler.length === 0 ? (
+        ) : !Array.isArray(urunler) || urunler.length === 0 ? (
           <div className="empty-products"><span>🌿</span>Bu filtreye uygun ürün bulunamadı.</div>
         ) : (
           <div className="product-grid">

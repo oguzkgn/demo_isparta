@@ -9,7 +9,7 @@ export default function OrdersPage({ arama, setArama, kategori, setKategori, kon
         <h1 className="page-title">📦 Siparişlerim</h1>
         {yukleniyor ? (
           <div className="loading">Yükleniyor...</div>
-        ) : siparisler.length === 0 ? (
+        ) : !Array.isArray(siparisler) || siparisler.length === 0 ? (
           <div className="empty-products"><span>📭</span>Henüz siparişiniz yok.</div>
         ) : (
           <div className="orders-list">
@@ -20,13 +20,13 @@ export default function OrdersPage({ arama, setArama, kategori, setKategori, kon
                   <span className={`order-status status-${s.durum}`}>{DURUM_ETIKET[s.durum] || s.durum}</span>
                 </div>
                 <div className="order-items">
-                  {s.urunler.slice(0, 2).map((u, i) => (
+                  {Array.isArray(s.urunler) && s.urunler.slice(0, 2).map((u, i) => (
                     <div key={i} className="order-item">
                       <span>{u.resim} {u.ad}</span>
                       <span>{u.adet} adet</span>
                     </div>
                   ))}
-                  {s.urunler.length > 2 && <small>+{s.urunler.length - 2} ürün daha</small>}
+                  {Array.isArray(s.urunler) && s.urunler.length > 2 && <small>+{s.urunler.length - 2} ürün daha</small>}
                 </div>
                 <div className="order-footer">
                   <span>{new Date(s.createdAt).toLocaleDateString('tr-TR')}</span>
