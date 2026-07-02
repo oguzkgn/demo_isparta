@@ -109,10 +109,10 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
     >
       <section className="hero">
         <div className="hero-banner">
-          <div className="hero-content">
+          <div className="hero-content hero-vivid">
             <p className="hero-eyebrow">Isparta · Yerel Ticaret</p>
             <h1>Isparta&apos;nın yerel alışveriş platformu</h1>
-            <p>Lavanta ve gül vadisinden kapınıza teslimat. 300 TL üzeri siparişlerde ücretsiz kargo.</p>
+            <p className="hero-lead">Lavanta ve gül vadisinden kapınıza teslimat. 300 TL üzeri siparişlerde ücretsiz kargo.</p>
             <div className="hero-coupons">
               <span className="coupon-chip">ISPARTA10</span>
               <span className="coupon-chip">LAVANTA50</span>

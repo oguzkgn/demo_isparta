@@ -1246,7 +1246,7 @@
 .kart-form label { display: block; margin-bottom: 0.75rem; font-size: 0.9rem; }
 .kart-form input, .kart-form select { width: 100%; margin-top: 0.25rem; padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 8px; }
 
-/* ── Photo background — lavanta & gül dalgalanması ── */
+/* ── Parallax arka plan: lavanta sol üst, gül sağ alt ── */
 .animated-bg {
   position: fixed;
   inset: 0;
@@ -1259,163 +1259,183 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(255, 255, 255, 0.72) 0%, rgba(249, 247, 251, 0.88) 55%, rgba(249, 247, 251, 0.94) 100%);
+    radial-gradient(ellipse 70% 55% at 50% 45%, rgba(255, 255, 255, 0.55) 0%, rgba(249, 247, 251, 0.82) 50%, rgba(249, 247, 251, 0.92) 100%);
   z-index: 2;
 }
 
-.photo-scene {
-  position: absolute;
-  inset: 0;
-  perspective: 1600px;
-  transform-style: preserve-3d;
-}
-
-.photo-flag {
-  position: absolute;
-  transform-style: preserve-3d;
-  display: flex;
-  align-items: stretch;
-}
-
-.photo-flag-pole {
-  width: 4px;
-  background: linear-gradient(180deg, #8a7355, #5c4a38);
-  border-radius: 2px;
-  flex-shrink: 0;
-  opacity: 0.5;
-}
-
-.photo-flag-sheet {
-  flex: 1;
+.parallax-photo {
+  position: fixed;
+  z-index: 1;
   overflow: hidden;
-  border-radius: 0 12px 12px 0;
-  box-shadow: 0 28px 70px rgba(18, 10, 24, 0.18);
-  transform-origin: left center;
-  animation: flagWave3d 8s ease-in-out infinite;
+  border-radius: 20px;
+  box-shadow: 0 32px 80px rgba(18, 10, 24, 0.14);
+  will-change: transform;
+  transition: transform 0.12s linear;
 }
 
-.photo-flag-sheet img {
-  width: 115%;
-  height: 115%;
-  margin: -7.5%;
+.parallax-photo img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   display: block;
-  animation: flagFabricRipple 5.5s ease-in-out infinite alternate;
-  will-change: transform;
 }
 
-.flag-lavender .photo-flag-sheet {
-  border: 1px solid rgba(107, 91, 138, 0.25);
+.parallax-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(18, 10, 24, 0.06) 100%);
+  pointer-events: none;
 }
 
-.flag-rose .photo-flag-sheet {
-  border: 1px solid rgba(168, 67, 98, 0.2);
-}
-
-.photo-flag.flag-1 {
-  width: min(44vw, 540px);
-  height: min(32vh, 260px);
+.parallax-lavender {
   top: 2%;
-  left: -2%;
-  animation: flagDrift 12s ease-in-out infinite;
-  animation-delay: 0s;
-  opacity: 0.62;
+  left: 2%;
+  width: min(46vw, 560px);
+  aspect-ratio: 5 / 3.5;
+  transform-origin: top left;
+  opacity: 0.72;
+  border: 1px solid rgba(107, 91, 138, 0.18);
 }
 
-.photo-flag.flag-2 {
-  width: min(40vw, 500px);
-  height: min(34vh, 280px);
-  top: 22%;
-  right: -4%;
-  animation: flagDrift 11s ease-in-out infinite reverse;
-  animation-delay: -2s;
-  opacity: 0.58;
-}
-
-.photo-flag.flag-3 {
-  width: min(38vw, 460px);
-  height: min(28vh, 230px);
-  bottom: 18%;
-  left: 6%;
-  animation: flagDrift 13s ease-in-out infinite;
-  animation-delay: -5s;
-  opacity: 0.55;
-}
-
-.photo-flag.flag-4 {
-  width: min(42vw, 520px);
-  height: min(30vh, 250px);
-  bottom: 4%;
+.parallax-rose {
+  bottom: 2%;
   right: 2%;
-  animation: flagDrift 10s ease-in-out infinite reverse;
-  animation-delay: -7s;
-  opacity: 0.6;
+  width: min(46vw, 560px);
+  aspect-ratio: 5 / 3.5;
+  transform-origin: bottom right;
+  opacity: 0.72;
+  border: 1px solid rgba(168, 67, 98, 0.16);
 }
 
-.photo-flag.flag-5 {
-  width: min(34vw, 420px);
-  height: min(24vh, 200px);
-  top: 48%;
-  left: 38%;
-  animation: flagDrift 14s ease-in-out infinite;
-  animation-delay: -9s;
-  opacity: 0.4;
+/* ── Canlı tipografi: ana sayfa ── */
+.hero-vivid .hero-eyebrow {
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 0.75rem;
 }
 
-.photo-flag.flag-6 {
-  width: min(36vw, 440px);
-  height: min(26vh, 210px);
-  top: 8%;
-  right: 28%;
-  animation: flagDrift 12s ease-in-out infinite reverse;
-  animation-delay: -11s;
-  opacity: 0.42;
+.hero-vivid h1 {
+  color: var(--primary-dark);
+  font-weight: 700;
+  font-size: clamp(2rem, 3.5vw, 2.85rem);
+  letter-spacing: -0.03em;
 }
 
-.flag-1 .photo-flag-sheet { animation-delay: 0s; }
-.flag-2 .photo-flag-sheet { animation-delay: -1.2s; }
-.flag-3 .photo-flag-sheet { animation-delay: -2.4s; }
-.flag-4 .photo-flag-sheet { animation-delay: -3.6s; }
-.flag-5 .photo-flag-sheet { animation-delay: -4.8s; }
-.flag-6 .photo-flag-sheet { animation-delay: -6s; }
-
-@keyframes flagWave3d {
-  0%, 100% {
-    transform: rotateY(-28deg) rotateX(8deg) skewY(-3deg);
-  }
-  20% {
-    transform: rotateY(-8deg) rotateX(-4deg) skewY(2deg);
-  }
-  40% {
-    transform: rotateY(22deg) rotateX(6deg) skewY(-4deg);
-  }
-  60% {
-    transform: rotateY(32deg) rotateX(-5deg) skewY(3deg);
-  }
-  80% {
-    transform: rotateY(10deg) rotateX(4deg) skewY(-2deg);
-  }
+.hero-lead {
+  color: var(--ink-soft);
+  font-size: 1.08rem;
+  font-weight: 500;
+  line-height: var(--leading-relaxed);
+  max-width: 460px;
 }
 
-@keyframes flagFabricRipple {
-  0% {
-    transform: scale(1) translateX(0) translateY(0);
-  }
-  50% {
-    transform: scale(1.06) translateX(-1.5%) translateY(-1%);
-  }
-  100% {
-    transform: scale(1.03) translateX(1%) translateY(0.5%);
-  }
+.section-title {
+  color: var(--primary-dark);
+  font-weight: 700;
 }
 
-@keyframes flagDrift {
-  0%, 100% {
-    transform: translateY(0) rotateZ(-1.5deg);
-  }
-  50% {
-    transform: translateY(-18px) rotateZ(1.5deg);
-  }
+.coupon-chip {
+  font-weight: 800;
+  color: var(--primary-dark);
+  background: var(--lavender-soft);
+}
+
+/* ── Canlı tipografi: kayıt ── */
+.auth-vivid {
+  width: 100%;
+  max-width: 540px;
+}
+
+.auth-kicker {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--space-sm);
+  padding-left: 0.25rem;
+}
+
+.auth-form-vivid {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(74, 45, 92, 0.14);
+  box-shadow: 0 16px 48px rgba(18, 10, 24, 0.1);
+  padding: 2.25rem;
+}
+
+.auth-form-vivid h1 {
+  font-family: var(--font-display);
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 0 0 var(--space-sm);
+  line-height: 1.2;
+}
+
+.auth-sub-vivid {
+  color: var(--ink-soft) !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  line-height: var(--leading-relaxed) !important;
+  margin-bottom: var(--space-lg) !important;
+}
+
+.auth-form-vivid label {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.92rem;
+  margin-bottom: var(--space-md);
+  line-height: 1.45;
+}
+
+.label-hint {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.auth-form-vivid input,
+.auth-form-vivid textarea {
+  color: var(--ink);
+  font-weight: 500;
+  font-size: 1rem;
+  border: 1.5px solid rgba(74, 45, 92, 0.16);
+  background: #fff;
+  padding: 0.75rem 0.9rem;
+}
+
+.auth-form-vivid input:focus,
+.auth-form-vivid textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(74, 45, 92, 0.12);
+}
+
+.auth-form-vivid input::placeholder,
+.auth-form-vivid textarea::placeholder {
+  color: #9a93a8;
+  font-weight: 400;
+}
+
+.auth-form-vivid .auth-submit {
+  background: var(--primary);
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.9rem;
+  margin-top: var(--space-sm);
+}
+
+.auth-form-vivid .auth-submit:hover {
+  background: var(--primary-dark);
+}
+
+.auth-form-vivid .auth-alt a {
+  color: var(--primary);
+  font-weight: 700;
 }
 
 @media (max-width: 768px) {
@@ -1429,18 +1449,33 @@
   .hero-visual::after {
     background: linear-gradient(180deg, transparent 35%, var(--surface) 100%);
   }
-  .photo-flag {
-    opacity: 0.35 !important;
+  .parallax-lavender,
+  .parallax-rose {
+    width: min(72vw, 340px);
+    opacity: 0.5;
   }
-  .photo-flag.flag-5,
-  .photo-flag.flag-6 {
-    display: none;
+  .parallax-lavender {
+    top: 0;
+    left: 0;
+  }
+  .parallax-rose {
+    bottom: 0;
+    right: 0;
   }
   .header-link.icon-link span {
     display: none;
   }
   .header-top {
     gap: var(--space-sm);
+  }
+  .auth-form-vivid {
+    padding: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parallax-photo {
+    transition: none;
   }
 }
 

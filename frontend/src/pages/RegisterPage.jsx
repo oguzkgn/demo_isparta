@@ -40,33 +40,38 @@ export default function RegisterPage({ arama, setArama, kategori, setKategori, k
   return (
     <Layout arama={arama} setArama={setArama} kategori={kategori} setKategori={setKategori} konum={konum} setKonum={setKonum}>
       <main className="main auth-page">
-        <form className="auth-form wide" onSubmit={handleSubmit} noValidate>
-          <h1>Kayıt Ol</h1>
-          <p className="auth-sub">Türkçe karakterli ad/soyad kabul edilir. Telefon isteğe bağlıdır.</p>
-          {hatalar.length > 0 && (
-            <div className="auth-error">
-              {hatalar.length === 1 ? hatalar[0] : (
-                <ul className="auth-error-list">
-                  {hatalar.map((h, i) => <li key={i}>{h}</li>)}
-                </ul>
-              )}
+        <div className="auth-portal auth-vivid">
+          <p className="auth-kicker">Üyelik</p>
+          <form className="auth-form wide auth-form-vivid" onSubmit={handleSubmit} noValidate>
+            <h1>Hesap Oluşturun</h1>
+            <p className="auth-sub auth-sub-vivid">
+              Isparta&apos;da alışverişe başlayın. Türkçe karakterli ad ve soyad kabul edilir.
+            </p>
+            {hatalar.length > 0 && (
+              <div className="auth-error">
+                {hatalar.length === 1 ? hatalar[0] : (
+                  <ul className="auth-error-list">
+                    {hatalar.map((h, i) => <li key={i}>{h}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
+            <div className="form-row">
+              <label>Ad<input name="ad" value={form.ad} onChange={handleChange} required placeholder="Öğuz" /></label>
+              <label>Soyad<input name="soyad" value={form.soyad} onChange={handleChange} required placeholder="Kara" /></label>
             </div>
-          )}
-          <div className="form-row">
-            <label>Ad<input name="ad" value={form.ad} onChange={handleChange} required placeholder="Öğuz" /></label>
-            <label>Soyad<input name="soyad" value={form.soyad} onChange={handleChange} required placeholder="Kara" /></label>
-          </div>
-          <label>E-posta<input type="email" name="email" value={form.email} onChange={handleChange} required placeholder="ornek@mail.com" /></label>
-          <label>Şifre<input type="password" name="sifre" value={form.sifre} onChange={handleChange} required minLength={6} /></label>
-          <label>Telefon (isteğe bağlı)<input name="telefon" value={form.telefon} onChange={handleChange} placeholder="05xx xxx xx xx" /></label>
-          <label>Adres<textarea name="adres" value={form.adres} onChange={handleChange} rows={2} /></label>
-          <label>Mahalle<input name="konum" value={form.konum} onChange={handleChange} placeholder="Çünür, İyaş..." /></label>
-          <button type="submit" className="auth-submit" disabled={yukleniyor}>
-            {yukleniyor ? 'Kayıt oluşturuluyor...' : 'Kayıt Ol'}
-          </button>
-          <p className="auth-alt">Zaten hesabınız var mı? <Link to="/giris">Giriş yapın</Link></p>
-          <Link to="/satici/giris" className="seller-entry-link">Satıcı olarak satış yapmak istiyorum</Link>
-        </form>
+            <label>E-posta<input type="email" name="email" value={form.email} onChange={handleChange} required placeholder="ornek@mail.com" /></label>
+            <label>Şifre<span className="label-hint">En az 6 karakter</span><input type="password" name="sifre" value={form.sifre} onChange={handleChange} required minLength={6} /></label>
+            <label>Telefon <span className="label-hint">İsteğe bağlı</span><input name="telefon" value={form.telefon} onChange={handleChange} placeholder="05xx xxx xx xx" /></label>
+            <label>Adres<textarea name="adres" value={form.adres} onChange={handleChange} rows={2} placeholder="Teslimat adresiniz" /></label>
+            <label>Mahalle<input name="konum" value={form.konum} onChange={handleChange} placeholder="Çünür, İyaş, Merkez..." /></label>
+            <button type="submit" className="auth-submit" disabled={yukleniyor}>
+              {yukleniyor ? 'Kayıt oluşturuluyor...' : 'Kayıt Ol'}
+            </button>
+            <p className="auth-alt">Zaten hesabınız var mı? <Link to="/giris">Giriş yapın</Link></p>
+            <Link to="/satici/giris" className="seller-entry-link">Satıcı olarak satış yapmak istiyorum</Link>
+          </form>
+        </div>
       </main>
     </Layout>
   );
