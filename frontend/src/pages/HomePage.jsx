@@ -120,9 +120,6 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
       arama={arama}
       setArama={setArama}
       onAra={urunleriGetir}
-      konumlar={konumlar}
-      konum={konum}
-      setKonum={setKonum}
     >
       <section className="hero">
         <div className="hero-banner hero-banner-single">
@@ -135,6 +132,59 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
               <span className="coupon-chip">LAVANTA50</span>
               <span className="coupon-chip">GUL20</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="shop-controls">
+        <div className="shop-controls-inner">
+          <div className="filter-bar-top">
+            <span className="filter-bar-label">Filtrele</span>
+            <div className="filter-bar-fields">
+              <label>Mahalle
+                <select value={konum} onChange={(e) => setKonum(e.target.value)}>
+                  <option value="">Tüm Mahalleler</option>
+                  {Array.isArray(konumlar) && konumlar.map((k) => (
+                    <option key={k} value={k}>{konumMetni(k)}</option>
+                  ))}
+                </select>
+              </label>
+              <label>Marka
+                <select value={filtre.marka} onChange={(e) => setFiltre({ ...filtre, marka: e.target.value })}>
+                  <option value="">Tümü</option>
+                  {Array.isArray(markalar) && markalar.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </label>
+              <label>Min Fiyat<input type="number" value={filtre.minFiyat} onChange={(e) => setFiltre({ ...filtre, minFiyat: e.target.value })} /></label>
+              <label>Max Fiyat<input type="number" value={filtre.maxFiyat} onChange={(e) => setFiltre({ ...filtre, maxFiyat: e.target.value })} /></label>
+              <label>Min Puan
+                <select value={filtre.minPuan} onChange={(e) => setFiltre({ ...filtre, minPuan: e.target.value })}>
+                  <option value="">Tümü</option>
+                  {[4, 4.5, 5].map((p) => <option key={p} value={p}>{p}+ puan</option>)}
+                </select>
+              </label>
+              <button type="button" className="fav-btn filter-clear-btn" onClick={() => {
+                setKonum('');
+                setFiltre({ marka: '', minFiyat: '', maxFiyat: '', minPuan: '' });
+                setSiralama('');
+              }}>Temizle</button>
+            </div>
+          </div>
+          <div className="shop-toolbar-top">
+            <select value={siralama} onChange={(e) => setSiralama(e.target.value)} aria-label="Sıralama">
+              <option value="">Sıralama</option>
+              <option value="fiyatArtan">Fiyat: Artan</option>
+              <option value="fiyatAzalan">Fiyat: Azalan</option>
+              <option value="puan">Puan: Yüksekten düşüğe</option>
+              <option value="puanArtan">Puan: Düşükten yükseğe</option>
+            </select>
+            {konum && (
+              <span className="filter-chip">
+                {konumMetni(konum)}
+                <button type="button" onClick={() => setKonum('')} aria-label="Mahalle filtresini kaldır">×</button>
+              </span>
+            )}
+            <span className="product-count">{Array.isArray(urunler) ? urunler.length : 0} ürün</span>
           </div>
         </div>
       </section>
@@ -161,85 +211,21 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
         </section>
       )}
 
-      <section className="section-block">
-        <div className="category-grid">
-          {Array.isArray(kategoriler) && kategoriler.map((k) => (
-            <button
-              key={k.id}
-              type="button"
-              className={`category-card cat-${k.id} ${kategori === k.id ? 'active' : ''}`}
-              onClick={() => { setKategori(k.id); navigate('/'); }}
-            >
-              <span className="category-label">{k.ad}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <main className="main with-sidebar">
-        <aside className="filter-sidebar">
-          <h3>Filtrele</h3>
-          <label>Mahalle
-            <select value={konum} onChange={(e) => setKonum(e.target.value)}>
-              <option value="">Tüm Mahalleler</option>
-              {Array.isArray(konumlar) && konumlar.map((k) => (
-                <option key={k} value={k}>{konumMetni(k)}</option>
-              ))}
-            </select>
-          </label>
-          <label>Marka
-            <select value={filtre.marka} onChange={(e) => setFiltre({ ...filtre, marka: e.target.value })}>
-              <option value="">Tümü</option>
-              {Array.isArray(markalar) && markalar.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </label>
-          <label>Min Fiyat<input type="number" value={filtre.minFiyat} onChange={(e) => setFiltre({ ...filtre, minFiyat: e.target.value })} /></label>
-          <label>Max Fiyat<input type="number" value={filtre.maxFiyat} onChange={(e) => setFiltre({ ...filtre, maxFiyat: e.target.value })} /></label>
-          <label>Min Puan
-            <select value={filtre.minPuan} onChange={(e) => setFiltre({ ...filtre, minPuan: e.target.value })}>
-              <option value="">Tümü</option>
-              {[4, 4.5, 5].map((p) => <option key={p} value={p}>{p}+ puan</option>)}
-            </select>
-          </label>
-          <button type="button" className="fav-btn" onClick={() => {
-            setKonum('');
-            setFiltre({ marka: '', minFiyat: '', maxFiyat: '', minPuan: '' });
-            setSiralama('');
-          }}>Temizle</button>
-        </aside>
-        <div className="main-content">
-          <div className="toolbar">
-            <select value={siralama} onChange={(e) => setSiralama(e.target.value)} aria-label="Sıralama">
-              <option value="">Sıralama</option>
-              <option value="fiyatArtan">Fiyat: Artan</option>
-              <option value="fiyatAzalan">Fiyat: Azalan</option>
-              <option value="puan">Puan: Yüksekten düşüğe</option>
-              <option value="puanArtan">Puan: Düşükten yükseğe</option>
-            </select>
-            {konum && (
-              <span className="filter-chip">
-                {konumMetni(konum)}
-                <button type="button" onClick={() => setKonum('')} aria-label="Mahalle filtresini kaldır">×</button>
-              </span>
-            )}
-            <span className="product-count">{Array.isArray(urunler) ? urunler.length : 0} ürün</span>
+      <main className="main">
+        {yukleniyor ? (
+          <div className="loading">Ürünler yükleniyor...</div>
+        ) : !Array.isArray(urunler) || urunler.length === 0 ? (
+          <EmptyState
+            title="Ürün bulunamadı"
+            description="Filtreleri değiştirerek tekrar deneyin."
+          />
+        ) : (
+          <div className="product-grid">
+            {urunler.map((u) => (
+              <ProductCard key={u._id} u={u} {...cardProps} favoriMi={favoriIds.has(u._id)} />
+            ))}
           </div>
-
-          {yukleniyor ? (
-            <div className="loading">Ürünler yükleniyor...</div>
-          ) : !Array.isArray(urunler) || urunler.length === 0 ? (
-            <EmptyState
-              title="Ürün bulunamadı"
-              description="Filtreleri değiştirerek tekrar deneyin."
-            />
-          ) : (
-            <div className="product-grid">
-              {urunler.map((u) => (
-                <ProductCard key={u._id} u={u} {...cardProps} favoriMi={favoriIds.has(u._id)} />
-              ))}
-            </div>
-          )}
-        </div>
+        )}
       </main>
     </Layout>
   );

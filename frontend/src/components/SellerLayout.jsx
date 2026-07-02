@@ -40,6 +40,9 @@ export default function SellerLayout({ children }) {
           </div>
         </div>
       </header>
+      <nav className="back-home-bar seller-back-home" aria-label="Gezinme">
+        <Link to="/" className="back-home-link">← Ana sayfaya dön</Link>
+      </nav>
       {children}
       <footer className="seller-footer">
         <p>demo Satıcı — Isparta&apos;da ürünlerinizi satışa koyun</p>
