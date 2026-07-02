@@ -2,10 +2,19 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { fetchOrder, cancelOrder, createReturn } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { formatPrice, DURUM_ETIKET, konumMetni } from '../utils/format';
+import { formatPrice, DURUM_ETIKET, SIPARIS_TAKIP_ADIMLARI, durumTamamlandi, konumMetni } from '../utils/format';
 import { productImageSrc } from '../constants/images';
 import Layout from '../components/Layout';
 import EmptyState from '../components/EmptyState';
+
+const IPTAL_EDILEMEZ = new Set([
+  'kargoya_verildi',
+  'kargo_teslim_alindi',
+  'dagitimda',
+  'kargoda',
+  'teslim',
+  'iptal'
+]);
 
 export default function OrderDetailPage({ arama, setArama, kategori, setKategori, konum, setKonum }) {
   const { id } = useParams();
@@ -46,14 +55,17 @@ export default function OrderDetailPage({ arama, setArama, kategori, setKategori
             <nav className="breadcrumb"><Link to="/siparisler">Siparişlerim</Link> / #{siparis._id.slice(-6).toUpperCase()}</nav>
             <div className="order-detail-header">
               <h1>Sipariş #{siparis._id.slice(-6).toUpperCase()}</h1>
-              <span className={`order-status status-${siparis.durum}`}>{DURUM_ETIKET[siparis.durum]}</span>
+              <span className={`order-status status-${siparis.durum}`}>{DURUM_ETIKET[siparis.durum] || siparis.durum}</span>
             </div>
             {siparis.takipNo && siparis.durum !== 'iptal' && (
               <p className="tracking">Kargo Takip: <strong>{siparis.takipNo}</strong></p>
             )}
             <div className="order-timeline">
-              {['beklemede', 'hazirlaniyor', 'kargoda', 'teslim'].map((d) => (
-                <div key={d} className={`timeline-step ${siparis.durum === d || ['teslim', 'kargoda', 'hazirlaniyor'].indexOf(siparis.durum) >= ['beklemede', 'hazirlaniyor', 'kargoda', 'teslim'].indexOf(d) ? 'done' : ''} ${siparis.durum === 'iptal' ? 'cancelled' : ''}`}>
+              {SIPARIS_TAKIP_ADIMLARI.map((d) => (
+                <div
+                  key={d}
+                  className={`timeline-step ${durumTamamlandi(siparis.durum, d) ? 'done' : ''} ${siparis.durum === 'iptal' ? 'cancelled' : ''}`}
+                >
                   {DURUM_ETIKET[d]}
                 </div>
               ))}
@@ -78,7 +90,7 @@ export default function OrderDetailPage({ arama, setArama, kategori, setKategori
             <p>{siparis.adres} — {konumMetni(siparis.konum)}</p>
             <p>{ { kredi_karti: 'Kredi Kartı', kapida_odeme: 'Kapıda Ödeme', havale: 'Havale' }[siparis.odemeYontemi] }</p>
             <p><small>{new Date(siparis.createdAt).toLocaleString('tr-TR')}</small></p>
-            {!['kargoda', 'teslim', 'iptal'].includes(siparis.durum) && (
+            {!IPTAL_EDILEMEZ.has(siparis.durum) && (
               <button type="button" className="delete-btn" onClick={iptalEt}>Siparişi İptal Et</button>
             )}
             {siparis.durum === 'teslim' && (

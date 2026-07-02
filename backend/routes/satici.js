@@ -6,6 +6,7 @@ const User = require('../models/User');
 const { authZorunlu, rolZorunlu } = require('../middleware/auth');
 const { dbBagli } = require('../lib/dbHelper');
 const memoryStore = require('../lib/memoryStore');
+const { durumGecerliMi } = require('../data/orderDurumlar');
 
 const router = express.Router();
 
@@ -235,12 +236,23 @@ router.get('/panel/siparisler', authZorunlu, ensureSaticiMiddleware, async (req,
 
 router.patch('/panel/siparisler/:id/durum', authZorunlu, ensureSaticiMiddleware, async (req, res) => {
   try {
+    const { durum } = req.body;
+    if (!durumGecerliMi(durum)) {
+      return res.status(400).json({ mesaj: 'Geçersiz sipariş durumu.' });
+    }
     if (!memoryMod(req)) {
-      const { durum } = req.body;
-      const siparis = await Order.findByIdAndUpdate(req.params.id, { durum }, { new: true });
+      const vendor = await Vendor.findOne({ kullanici: req.user._id });
+      if (!vendor) return res.status(403).json({ mesaj: 'Satıcı bulunamadı.' });
+      const urunIds = (await Product.find({ satici: vendor._id })).map((u) => u._id.toString());
+      const siparis = await Order.findById(req.params.id);
+      if (!siparis) return res.status(404).json({ mesaj: 'Sipariş bulunamadı.' });
+      const saticiUrunuVar = siparis.urunler.some((u) => urunIds.includes(String(u.urun)));
+      if (!saticiUrunuVar) return res.status(403).json({ mesaj: 'Bu sipariş size ait değil.' });
+      siparis.durum = durum;
+      await siparis.save();
       return res.json(siparis);
     }
-    res.json({ _id: req.params.id, durum: req.body.durum });
+    res.json({ _id: req.params.id, durum });
   } catch {
     res.status(500).json({ mesaj: 'Sipariş güncellenemedi.' });
   }

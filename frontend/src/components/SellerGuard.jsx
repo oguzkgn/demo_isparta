@@ -13,7 +13,9 @@ export default function SellerGuard({ children }) {
     }
   }, [kullanici, yukleniyor, navigate]);
 
-  if (yukleniyor) return <div className="loading page-loading">Yükleniyor...</div>;
+  if (yukleniyor) {
+    return <div className="loading">Yükleniyor...</div>;
+  }
   if (kullanici?.rol === 'kullanici') return null;
 
   return children;

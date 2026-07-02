@@ -6,7 +6,7 @@ import {
   fetchVendorOrders, updateVendorOrderStatus, prepareSeller,
   fetchCategories, fetchLocations
 } from '../api/client';
-import { formatPrice, DURUM_ETIKET } from '../utils/format';
+import { formatPrice, DURUM_ETIKET, SATICI_DURUM_SECENEKLERI } from '../utils/format';
 import { asArray } from '../utils/safe';
 import { ISPARTA_KONUMLAR } from '../constants/config';
 import SellerLayout from '../components/SellerLayout';
@@ -66,6 +66,7 @@ export default function SellerPanelPage() {
   const [ilanMesaj, setIlanMesaj] = useState('');
   const [ilanHata, setIlanHata] = useState('');
   const [panelHata, setPanelHata] = useState('');
+  const [siparisMesaj, setSiparisMesaj] = useState('');
   const [hazir, setHazir] = useState(false);
 
   const urunleriYenile = useCallback(async () => {
@@ -162,6 +163,17 @@ export default function SellerPanelPage() {
     }
   };
 
+  const siparisDurumGuncelle = async (id, durum) => {
+    setSiparisMesaj('');
+    try {
+      await updateVendorOrderStatus(id, durum);
+      setSiparisler(asArray(await fetchVendorOrders()));
+      setSiparisMesaj('Sipariş durumu güncellendi.');
+    } catch (err) {
+      setPanelHata(err.response?.data?.mesaj || 'Sipariş durumu güncellenemedi.');
+    }
+  };
+
   if (yukleniyor || !kullanici || !hazir) {
     return (
       <SellerLayout>
@@ -171,8 +183,8 @@ export default function SellerPanelPage() {
   }
 
   return (
-    <SellerGuard>
     <SellerLayout>
+      <SellerGuard>
       <main className="seller-main">
         <div className="seller-panel-header">
           <h1 className="page-title seller-page-title">İlan Yönetimi {vendor?.magazaAdi && `— ${vendor.magazaAdi}`}</h1>
@@ -239,34 +251,48 @@ export default function SellerPanelPage() {
         )}
 
         {tab === 'siparisler' && (
-          <div className="orders-list">
+          <div className="orders-list seller-orders">
+            {siparisMesaj && <div className="auth-success">{siparisMesaj}</div>}
             {siparisler.length === 0 ? (
-              <EmptyState title="Henüz sipariş yok" description="Müşteri siparişleri burada listelenir." />
+              <EmptyState title="Henüz sipariş yok" description="Müşteriler ürünlerinizi satın aldığında siparişler burada görünür." />
             ) : (
               siparisler.map((s) => (
                 <article key={s._id} className="order-card seller-order">
                   <div className="order-header">
-                    <span>#{s._id.slice(-6).toUpperCase()}</span>
-                    <span className={`order-status status-${s.durum}`}>{DURUM_ETIKET[s.durum]}</span>
+                    <div>
+                      <strong>#{s._id.slice(-6).toUpperCase()}</strong>
+                      {s.createdAt && (
+                        <small className="seller-order-date">{new Date(s.createdAt).toLocaleString('tr-TR')}</small>
+                      )}
+                    </div>
+                    <span className={`order-status status-${s.durum}`}>{DURUM_ETIKET[s.durum] || s.durum}</span>
                   </div>
                   {Array.isArray(s.urunler) && s.urunler.map((u, i) => (
-                    <div key={i} className="order-item"><span>{u.ad}</span><span>{u.adet} adet</span></div>
+                    <div key={i} className="order-item"><span>{u.ad}</span><span>{u.adet} adet · {formatPrice(u.fiyat * u.adet)}</span></div>
                   ))}
-                  <select value={s.durum} onChange={async (e) => {
-                    await updateVendorOrderStatus(s._id, e.target.value);
-                    setSiparisler(asArray(await fetchVendorOrders()));
-                  }}>
-                    {['beklemede', 'hazirlaniyor', 'kargoda', 'teslim'].map((d) => (
-                      <option key={d} value={d}>{DURUM_ETIKET[d]}</option>
-                    ))}
-                  </select>
+                  {s.takipNo && s.durum !== 'iptal' && (
+                    <p className="seller-tracking">Takip No: <strong>{s.takipNo}</strong></p>
+                  )}
+                  {s.adres && <p className="seller-order-address">{s.adres}</p>}
+                  <label className="seller-status-label">
+                    Sipariş durumu
+                    <select
+                      className="seller-status-select"
+                      value={s.durum === 'kargoda' ? 'kargoya_verildi' : s.durum}
+                      onChange={(e) => siparisDurumGuncelle(s._id, e.target.value)}
+                    >
+                      {SATICI_DURUM_SECENEKLERI.map((d) => (
+                        <option key={d} value={d}>{DURUM_ETIKET[d]}</option>
+                      ))}
+                    </select>
+                  </label>
                 </article>
               ))
             )}
           </div>
         )}
       </main>
+      </SellerGuard>
     </SellerLayout>
-    </SellerGuard>
   );
 }

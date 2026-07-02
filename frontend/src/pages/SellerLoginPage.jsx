@@ -61,12 +61,12 @@ export default function SellerLoginPage() {
           <div className="auth-portal-badge">Satıcı Girişi</div>
           <form className="auth-form seller-auth-form" onSubmit={handleSubmit}>
             <h1>Mağazanıza Giriş Yapın</h1>
-            <p className="auth-sub">Giriş sonrası ilan verme paneline gidersiniz</p>
+            <p className="auth-sub">Giriş sonrası satıcı panelinde kalırsınız — ilan verme ve sipariş yönetimi burada yapılır</p>
             {hata && <div className="auth-error">{hata}</div>}
             <label>E-posta<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
             <label>Şifre<input type="password" value={sifre} onChange={(e) => setSifre(e.target.value)} required minLength={6} /></label>
             <button type="submit" className="auth-submit seller-submit" disabled={formYukleniyor}>
-              {formYukleniyor ? 'Giriş yapılıyor...' : 'Giriş Yap — İlan Paneline Git'}
+              {formYukleniyor ? 'Giriş yapılıyor...' : 'Satıcı Paneline Giriş Yap'}
             </button>
             <p className="auth-alt">Henüz hesabınız yok mu? <Link to="/satici/basvuru">Satıcı kaydı oluşturun</Link></p>
           </form>

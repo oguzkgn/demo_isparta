@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Order = require('../models/Order');
 const { authZorunlu } = require('../middleware/auth');
 const { kuponDogrula } = require('../data/kuponlar');
+const { IPTAL_EDILEMEZ } = require('../data/orderDurumlar');
 
 const router = express.Router();
 const KARGO_UCRETI = 29.99;
@@ -80,7 +81,7 @@ router.patch('/:id/iptal', authZorunlu, async (req, res) => {
   try {
     const siparis = await Order.findOne({ _id: req.params.id, kullanici: req.user._id });
     if (!siparis) return res.status(404).json({ mesaj: 'Sipariş bulunamadı.' });
-    if (['kargoda', 'teslim', 'iptal'].includes(siparis.durum)) {
+    if (IPTAL_EDILEMEZ.has(siparis.durum)) {
       return res.status(400).json({ mesaj: 'Bu sipariş iptal edilemez.' });
     }
     siparis.durum = 'iptal';

@@ -19,7 +19,16 @@ const orderSchema = new mongoose.Schema({
   odemeYontemi: { type: String, default: 'kredi_karti' },
   durum: {
     type: String,
-    enum: ['beklemede', 'hazirlaniyor', 'kargoda', 'teslim', 'iptal'],
+    enum: [
+      'beklemede',
+      'hazirlaniyor',
+      'kargoya_verildi',
+      'kargo_teslim_alindi',
+      'dagitimda',
+      'kargoda',
+      'teslim',
+      'iptal'
+    ],
     default: 'beklemede'
   },
   adres: String,

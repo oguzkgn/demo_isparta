@@ -1195,6 +1195,9 @@
 
 .status-beklemede { background: #fef3c7; color: #92400e; }
 .status-hazirlaniyor { background: #dbeafe; color: #1e40af; }
+.status-kargoya_verildi { background: #e0e7ff; color: #3730a3; }
+.status-kargo_teslim_alindi { background: #ddd6fe; color: #5b21b6; }
+.status-dagitimda { background: #fce7f3; color: #9d174d; }
 .status-kargoda { background: #e0e7ff; color: #3730a3; }
 .status-teslim { background: #d1fae5; color: #065f46; }
 
@@ -2076,6 +2079,52 @@
 
 .seller-order {
   border-left: 4px solid var(--seller-gold);
+}
+
+.seller-orders .seller-order {
+  background: #fff;
+  border: 1px solid rgba(27, 67, 50, 0.12);
+  border-left: 4px solid var(--seller-gold);
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+}
+
+.seller-order-date {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin-top: 0.15rem;
+}
+
+.seller-tracking,
+.seller-order-address {
+  font-size: 0.88rem;
+  color: #374151;
+  margin: 0.5rem 0 0;
+}
+
+.seller-status-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--seller-green);
+}
+
+.seller-status-select {
+  padding: 0.55rem 0.75rem;
+  border: 2px solid rgba(27, 67, 50, 0.2);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.seller-status-select:focus {
+  outline: none;
+  border-color: var(--seller-green);
 }
 
 .seller-empty {
