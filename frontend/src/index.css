@@ -4,6 +4,7 @@
   --pink-light: #fff0f8;
   --purple: #7b2cbf;
   --purple-soft: #ede0ff;
+  --purple-light: #ede0ff;
   --lavender: #b794f6;
   --rose: #f48fb1;
   --white: #ffffff;
@@ -11,6 +12,9 @@
   --text-muted: #6b5b7a;
   --shadow: 0 4px 24px rgba(123, 44, 191, 0.12);
   --radius: 14px;
+  --seller-green: #1b4332;
+  --seller-gold: #d4a017;
+  --seller-bg: #f0f7f4;
 }
 
 * {
@@ -22,34 +26,9 @@
 body {
   font-family: 'Outfit', system-ui, sans-serif;
   color: var(--text);
-  background: var(--pink-light);
+  background: linear-gradient(160deg, #fff5fb 0%, #f3ebff 45%, #fff0f5 100%);
   min-height: 100vh;
-}
-
-body::before,
-body::after {
-  content: '';
-  position: fixed;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.35;
-}
-
-body::before {
-  width: 420px;
-  height: 420px;
-  top: -120px;
-  right: -80px;
-  background: radial-gradient(circle, var(--rose) 0%, transparent 70%);
-}
-
-body::after {
-  width: 380px;
-  height: 380px;
-  bottom: -100px;
-  left: -60px;
-  background: radial-gradient(circle, var(--lavender) 0%, transparent 70%);
+  overflow-x: hidden;
 }
 
 #root {

@@ -67,8 +67,8 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
           <div className="header-actions">
             {kullanici ? (
               <>
-                <Link to="/favoriler" className="header-link">❤️</Link>
-                <Link to="/siparisler" className="header-link">📦</Link>
+                <Link to="/favoriler" className="header-link fav-link" title="Favorilerim">❤️ Favoriler</Link>
+                <Link to="/siparisler" className="header-link">📦 Siparişler</Link>
                 <Link to="/profil" className="header-link">👤 {kullanici.ad}</Link>
                 <button type="button" className="header-link-btn" onClick={cikisYap}>Çıkış</button>
               </>
@@ -76,6 +76,7 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
               <>
                 <Link to="/giris" className="header-link">Giriş</Link>
                 <Link to="/kayit" className="header-link register-link">Kayıt Ol</Link>
+                <Link to="/satici/giris" className="header-link seller-link">🏪 Satıcı</Link>
               </>
             )}
             <button type="button" className="cart-btn" onClick={() => setSepetAcik(true)}>

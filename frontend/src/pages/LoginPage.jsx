@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { musteriYonlendir } from '../utils/authRedirect';
 import Layout from '../components/Layout';
 
 export default function LoginPage({ arama, setArama, kategori, setKategori, konum, setKonum }) {
@@ -17,7 +18,7 @@ export default function LoginPage({ arama, setArama, kategori, setKategori, konu
     setYukleniyor(true);
     try {
       await girisYap(email, sifre);
-      navigate('/');
+      musteriYonlendir(navigate);
     } catch (err) {
       setHata(err.response?.data?.mesaj || 'Giriş başarısız.');
     } finally {
@@ -30,32 +31,42 @@ export default function LoginPage({ arama, setArama, kategori, setKategori, konu
     if (!eposta) return;
     try {
       await googleGiris(eposta, 'Google', 'Kullanıcı');
-      navigate('/');
+      musteriYonlendir(navigate);
     } catch { setHata('Google girişi başarısız.'); }
   };
 
   const appleIle = async () => {
     try {
       await appleGiris();
-      navigate('/');
+      musteriYonlendir(navigate);
     } catch { setHata('Apple girişi başarısız.'); }
   };
 
   return (
     <Layout arama={arama} setArama={setArama} kategori={kategori} setKategori={setKategori} konum={konum} setKonum={setKonum}>
       <main className="main auth-page">
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <h1>Giriş Yap</h1>
-          {hata && <div className="auth-error">{hata}</div>}
-          <label>E-posta<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
-          <label>Şifre<input type="password" value={sifre} onChange={(e) => setSifre(e.target.value)} required minLength={6} /></label>
-          <button type="submit" className="auth-submit" disabled={yukleniyor}>Giriş Yap</button>
-          <div className="social-login">
-            <button type="button" className="social-btn google" onClick={googleIle}>Google ile Giriş</button>
-            <button type="button" className="social-btn apple" onClick={appleIle}>Apple ile Giriş</button>
-          </div>
-          <p className="auth-alt">Hesabınız yok mu? <Link to="/kayit">Kayıt olun</Link></p>
-        </form>
+        <div className="auth-portal customer-portal">
+          <div className="auth-portal-badge customer">🛍️ Müşteri Girişi</div>
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <h1>Alışverişe Giriş Yap</h1>
+            <p className="auth-sub">Favorilerinize, siparişlerinize ve sepetinize erişin</p>
+            {hata && <div className="auth-error">{hata}</div>}
+            <label>E-posta<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
+            <label>Şifre<input type="password" value={sifre} onChange={(e) => setSifre(e.target.value)} required minLength={6} /></label>
+            <button type="submit" className="auth-submit" disabled={yukleniyor}>Giriş Yap</button>
+            <div className="social-login">
+              <button type="button" className="social-btn google" onClick={googleIle}>Google ile Giriş</button>
+              <button type="button" className="social-btn apple" onClick={appleIle}>Apple ile Giriş</button>
+            </div>
+            <p className="auth-alt">Hesabınız yok mu? <Link to="/kayit">Kayıt olun</Link></p>
+            <div className="auth-divider">
+              <span>veya</span>
+            </div>
+            <Link to="/satici/giris" className="seller-entry-link">
+              🏪 Satıcı mısınız? Satıcı girişi →
+            </Link>
+          </form>
+        </div>
       </main>
     </Layout>
   );

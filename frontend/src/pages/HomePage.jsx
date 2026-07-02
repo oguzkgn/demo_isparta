@@ -1,19 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchProducts, fetchCategories, fetchLocations, fetchRecent, fetchBrands } from '../api/client';
+import { fetchProducts, fetchCategories, fetchLocations, fetchRecent, fetchBrands, fetchFavorites, addFavorite, removeFavorite } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { formatPrice } from '../utils/format';
 import { asArray } from '../utils/safe';
 import Layout from '../components/Layout';
 
-function ProductCard({ u, sepeteEkle }) {
+function ProductCard({ u, sepeteEkle, favoriMi, favoriToggle }) {
   return (
     <article className="product-card">
-      <Link to={`/urun/${u._id}`} className="product-image">
-        {u.oneCikan && <span className="badge">Öne Çıkan</span>}
-        {u.resim || '🛍️'}
-      </Link>
+      <div className="product-image-wrap">
+        <button
+          type="button"
+          className={`card-fav-btn ${favoriMi ? 'active' : ''}`}
+          onClick={() => favoriToggle?.(u._id)}
+          aria-label={favoriMi ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+        >
+          {favoriMi ? '❤️' : '🤍'}
+        </button>
+        <Link to={`/urun/${u._id}`} className="product-image">
+          {u.oneCikan && <span className="badge">Öne Çıkan</span>}
+          {u.resim || '🛍️'}
+        </Link>
+      </div>
       <div className="product-body">
         <div className="product-brand">{u.marka} {u.saticiAd && <span className="seller-tag">· {u.saticiAd}</span>}</div>
         <Link to={`/urun/${u._id}`} className="product-title">{u.ad}</Link>
@@ -42,6 +52,37 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
   const [siralama, setSiralama] = useState('');
   const [markalar, setMarkalar] = useState([]);
   const [filtre, setFiltre] = useState({ marka: '', minFiyat: '', maxFiyat: '', minPuan: '' });
+  const [favoriIds, setFavoriIds] = useState(new Set());
+
+  useEffect(() => {
+    if (!kullanici) {
+      setFavoriIds(new Set());
+      return;
+    }
+    fetchFavorites()
+      .then((list) => setFavoriIds(new Set(asArray(list).map((f) => f._id))))
+      .catch(() => setFavoriIds(new Set()));
+  }, [kullanici]);
+
+  const favoriToggle = async (urunId) => {
+    if (!kullanici) {
+      navigate('/giris');
+      return;
+    }
+    if (favoriIds.has(urunId)) {
+      await removeFavorite(urunId);
+      setFavoriIds((prev) => {
+        const next = new Set(prev);
+        next.delete(urunId);
+        return next;
+      });
+    } else {
+      await addFavorite(urunId);
+      setFavoriIds((prev) => new Set(prev).add(urunId));
+    }
+  };
+
+  const cardProps = { sepeteEkle, favoriToggle, favoriMi: false };
 
   useEffect(() => {
     Promise.all([fetchCategories(), fetchLocations(), fetchBrands()])
@@ -116,7 +157,7 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
           <h2 className="section-title">⚡ Flaş Ürünler</h2>
           <div className="product-grid compact">
             {oneCikan.slice(0, 4).map((u) => (
-              <ProductCard key={u._id} u={u} sepeteEkle={sepeteEkle} />
+              <ProductCard key={u._id} u={u} {...cardProps} favoriMi={favoriIds.has(u._id)} />
             ))}
           </div>
         </section>
@@ -127,7 +168,7 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
           <h2 className="section-title">👁️ Son Baktıklarınız</h2>
           <div className="product-grid compact">
             {sonGorulen.slice(0, 4).map((u) => (
-              <ProductCard key={u._id} u={u} sepeteEkle={sepeteEkle} />
+              <ProductCard key={u._id} u={u} {...cardProps} favoriMi={favoriIds.has(u._id)} />
             ))}
           </div>
         </section>
@@ -186,7 +227,7 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
         ) : (
           <div className="product-grid">
             {urunler.map((u) => (
-              <ProductCard key={u._id} u={u} sepeteEkle={sepeteEkle} />
+              <ProductCard key={u._id} u={u} {...cardProps} favoriMi={favoriIds.has(u._id)} />
             ))}
           </div>
         )}
