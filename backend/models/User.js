@@ -51,6 +51,8 @@ userSchema.methods.sifreKontrol = function (sifre) {
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.sifre;
+  delete obj.emailDogrulamaKodu;
+  delete obj.emailDogrulamaSon;
   return obj;
 };
 

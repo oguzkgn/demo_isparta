@@ -59,7 +59,7 @@ function isMemoryUser(id) {
 
 function sanitizeUser(u) {
   if (!u) return null;
-  const { sifreHash, ...rest } = u;
+  const { sifreHash, emailDogrulamaKodu, emailDogrulamaSon, ...rest } = u;
   return { ...rest };
 }
 
@@ -370,8 +370,12 @@ function saticiUrunSil(userId, urunId) {
   return true;
 }
 
-function kullaniciEmailIle(email) {
+function kullaniciHamEmailIle(email) {
   return [...users.values()].find((u) => u.email === email.toLowerCase()) || null;
+}
+
+function kullaniciEmailIle(email) {
+  return sanitizeUser(kullaniciHamEmailIle(email));
 }
 
 function kullaniciDogrulamaAta(email) {
@@ -393,6 +397,13 @@ function kullaniciDogrula(email, kod) {
   return sanitizeUser(user);
 }
 
+function kullaniciSilEmail(email) {
+  const user = kullaniciEmailIle(email);
+  if (!user) return false;
+  users.delete(user._id);
+  return true;
+}
+
 function saticiSiparisleri(userId) {
   return [];
 }
@@ -408,8 +419,10 @@ module.exports = {
   kullaniciBulVeyaOlustur,
   kullaniciGetir,
   kullaniciEmailIle,
+  kullaniciHamEmailIle,
   kullaniciDogrulamaAta,
   kullaniciDogrula,
+  kullaniciSilEmail,
   sepetGetir,
   sepeteEkle,
   sepetGuncelle,

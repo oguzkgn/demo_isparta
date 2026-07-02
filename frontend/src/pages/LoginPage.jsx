@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiHataMesaji } from '../utils/apiError';
 import { saticiGirisSonrasi } from '../utils/sellerAuth';
+import { epostaDogrulandiMi, epostaDogrulamaYolu } from '../utils/authVerify';
 import AuthShellLayout, { PortalToggle } from '../components/AuthShellLayout';
 
 export default function LoginPage() {
@@ -21,9 +22,14 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (yukleniyor || !kullanici) return;
+    if (!epostaDogrulandiMi(kullanici)) {
+      const p = kullanici.rol === 'satici' ? 'satici' : 'musteri';
+      navigate(epostaDogrulamaYolu(kullanici.email, p), { replace: true });
+      return;
+    }
     if (kullanici.rol === 'satici' || kullanici.rol === 'admin') {
       navigate('/satici/panel?tab=ilan', { replace: true });
-    } else if (kullanici.emailDogrulandi !== false) {
+    } else {
       navigate('/', { replace: true });
     }
   }, [yukleniyor, kullanici, navigate]);

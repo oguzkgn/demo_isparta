@@ -41,6 +41,10 @@ export default function RegisterPage() {
       navigate(`/eposta-dogrula?email=${encodeURIComponent(form.email)}&portal=${portal}`, { replace: true });
     } catch (err) {
       sessionStorage.removeItem('pendingSellerSetup');
+      if (err.response?.status === 503) {
+        setHatalar([apiHataMesaji(err, 'Doğrulama e-postası gönderilemedi. Kayıt tamamlanamadı.')]);
+        return;
+      }
       const apiHatalar = err.response?.data?.hatalar;
       if (Array.isArray(apiHatalar) && apiHatalar.length) {
         setHatalar(apiHatalar);
@@ -92,7 +96,9 @@ export default function RegisterPage() {
             <button type="submit" className={`auth-submit ${saticiMod ? 'seller-submit' : ''}`} disabled={yukleniyor}>
               {yukleniyor ? 'Kayıt oluşturuluyor...' : 'Kayıt Ol'}
             </button>
-            <p className="auth-alt auth-portal-note">Kayıt sonrası e-postanıza doğrulama kodu gönderilir.</p>
+            <p className="auth-alt auth-portal-note">
+              Kayıt sonrası doğrulama kodu yalnızca e-postanıza gönderilir. Kod olmadan panele giriş yapılamaz.
+            </p>
             <p className="auth-alt">Zaten hesabınız var mı? <Link to={`/giris?portal=${portal}`}>Giriş yapın</Link></p>
           </form>
         </div>

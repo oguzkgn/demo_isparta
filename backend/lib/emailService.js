@@ -28,8 +28,9 @@ function uygulamaUrl() {
 async function epostaGonder({ to, konu, metin, html }) {
   const transport = transporterAl();
   if (!transport) {
-    console.log(`[Demo] E-posta (SMTP yok) → ${to}: ${metin}`);
-    return { simulated: true };
+    const hata = new Error('E-posta servisi yapılandırılmamış (SMTP).');
+    hata.kod = 'SMTP_YOK';
+    throw hata;
   }
   await transport.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
@@ -38,11 +39,14 @@ async function epostaGonder({ to, konu, metin, html }) {
     text: metin,
     html: html || metin.replace(/\n/g, '<br>')
   });
-  return { simulated: false };
+  return { gonderildi: true };
 }
 
 async function dogrulamaMailiGonder(kullanici) {
   const kod = kullanici.emailDogrulamaKodu;
+  if (!kod) {
+    throw new Error('Doğrulama kodu üretilemedi.');
+  }
   const link = `${uygulamaUrl()}/eposta-dogrula?email=${encodeURIComponent(kullanici.email)}`;
   const metin = [
     'Merhaba,',
@@ -52,10 +56,11 @@ async function dogrulamaMailiGonder(kullanici) {
     '',
     `Doğrulama sayfası: ${link}`,
     '',
-    'Kod 15 dakika geçerlidir. Bu isteği siz yapmadıysanız e-postayı yok sayın.'
+    'Kod 15 dakika geçerlidir. Bu kodu kimseyle paylaşmayın.',
+    'Bu isteği siz yapmadıysanız e-postayı yok sayın.'
   ].join('\n');
 
-  return epostaGonder({
+  await epostaGonder({
     to: kullanici.email,
     konu: 'demo Isparta — E-posta Doğrulama Kodu',
     metin,
@@ -64,9 +69,11 @@ async function dogrulamaMailiGonder(kullanici) {
       <p>demo Isparta hesabınız için doğrulama kodunuz:</p>
       <p style="font-size:28px;font-weight:700;letter-spacing:4px">${kod}</p>
       <p><a href="${link}">Doğrulama sayfasına git</a></p>
-      <p style="color:#666;font-size:13px">Kod 15 dakika geçerlidir.</p>
+      <p style="color:#666;font-size:13px">Kod 15 dakika geçerlidir. Bu kodu kimseyle paylaşmayın.</p>
     `
   });
+  console.log(`[Demo] Doğrulama e-postası gönderildi: ${kullanici.email}`);
+  return { gonderildi: true };
 }
 
 module.exports = { epostaGonder, dogrulamaMailiGonder, smtpYapilandirildiMi, uygulamaUrl };

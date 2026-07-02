@@ -66,6 +66,7 @@ export default function EmailVerifyPage() {
             <h1>E-posta Doğrulama</h1>
             <p className="auth-sub">
               {email ? `${email} adresine gönderilen 6 haneli kodu girin.` : 'E-postanıza gelen kodu girin.'}
+              {' '}Kod yalnızca e-posta kutunuzda görünür.
             </p>
             {mesaj && <div className="auth-success">{mesaj}</div>}
             {hata && <div className="auth-error">{hata}</div>}

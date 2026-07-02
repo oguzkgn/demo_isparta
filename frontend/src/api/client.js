@@ -13,6 +13,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
+    if (err.response?.data?.kod === 'EPOSTA_DOGRULANMADI') {
+      localStorage.removeItem('demo-token');
+    }
     if (!err.response) {
       err.message = 'Sunucuya bağlanılamadı. API çalışıyor mu kontrol edin.';
     }

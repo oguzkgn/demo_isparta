@@ -11,6 +11,7 @@ import { asArray } from '../utils/safe';
 import { ISPARTA_KONUMLAR } from '../constants/config';
 import SellerLayout from '../components/SellerLayout';
 import SellerGuard from '../components/SellerGuard';
+import { epostaDogrulandiMi, epostaDogrulamaYolu } from '../utils/authVerify';
 import ProductImage from '../components/ProductImage';
 import ListingFormFields from '../components/ListingFormFields';
 import EmptyState from '../components/EmptyState';
@@ -77,7 +78,11 @@ export default function SellerPanelPage() {
   useEffect(() => {
     if (yukleniyor) return;
     if (!kullanici) {
-      navigate('/satici/giris', { replace: true });
+      navigate('/giris?portal=satici', { replace: true });
+      return;
+    }
+    if (!epostaDogrulandiMi(kullanici)) {
+      navigate(epostaDogrulamaYolu(kullanici.email, 'satici'), { replace: true });
       return;
     }
 

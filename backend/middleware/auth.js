@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { dbBagli } = require('../lib/dbHelper');
 const memoryStore = require('../lib/memoryStore');
+const { epostaDogrulandiMi } = require('../lib/emailDogrulama');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'demo-isparta-gizli-anahtar';
 
@@ -18,10 +19,17 @@ async function authZorunlu(req, res, next) {
     const decoded = jwt.verify(header.slice(7), JWT_SECRET);
 
     if (dbBagli() && !memoryStore.isMemoryUser(decoded.id)) {
-      const user = await User.findById(decoded.id).select('-sifre');
+      const user = await User.findById(decoded.id).select('-sifre -emailDogrulamaKodu -emailDogrulamaSon');
       if (user) {
         req.user = user;
         req.memoryMode = false;
+        if (!epostaDogrulandiMi(user)) {
+          return res.status(403).json({
+            mesaj: 'E-posta doğrulanmadan işlem yapılamaz.',
+            kod: 'EPOSTA_DOGRULANMADI',
+            email: user.email
+          });
+        }
         return next();
       }
     }
@@ -31,6 +39,13 @@ async function authZorunlu(req, res, next) {
     if (memUser) {
       req.user = memUser;
       req.memoryMode = true;
+      if (!epostaDogrulandiMi(memUser)) {
+        return res.status(403).json({
+          mesaj: 'E-posta doğrulanmadan işlem yapılamaz.',
+          kod: 'EPOSTA_DOGRULANMADI',
+          email: memUser.email
+        });
+      }
       return next();
     }
 
