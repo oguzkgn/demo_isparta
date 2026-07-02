@@ -25,7 +25,7 @@ export default function SellerLayout({ children }) {
           <nav className="seller-nav">
             <Link to="/satici/panel" className="seller-nav-link">Ürünlerim</Link>
             <Link to="/satici/panel" className="seller-nav-link">Siparişler</Link>
-            <Link to="/satici/basvuru" className="seller-nav-link">Mağaza Başvurusu</Link>
+            <Link to="/satici/panel" className="seller-nav-link">İlan Ver</Link>
             <Link to="/" className="seller-nav-link muted">Alışveriş Sitesi</Link>
           </nav>
           <div className="seller-header-actions">

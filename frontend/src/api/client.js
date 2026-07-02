@@ -41,6 +41,7 @@ export const fetchRecent = () =>
 export const trackRecent = (urunId) => api.post(`/api/ara/son-gorulen/${urunId}`).then((r) => r.data);
 
 export const register = (data) => api.post('/api/auth/kayit', data).then((r) => r.data);
+export const registerSeller = (data) => api.post('/api/auth/satici-kayit', data).then((r) => r.data);
 export const login = (data) => api.post('/api/auth/giris', data).then((r) => r.data);
 export const loginGoogle = (data) => api.post('/api/auth/google', data).then((r) => r.data);
 export const loginApple = (data) => api.post('/api/auth/apple', data).then((r) => r.data);
@@ -60,7 +61,7 @@ export const deleteAddress = (id) => api.delete(`/api/auth/adresler/${id}`).then
 export const fetchCart = () => api.get('/api/sepet').then((r) => asArray(r.data));
 export const addToCart = (urunId, adet = 1, beden, renk) =>
   api.post('/api/sepet', { urunId, adet, beden, renk }).then((r) => r.data);
-export const updateCartItem = (urunId, adet) => api.patch(`/api/sepet/${urunId}`, { adet }).then((r) => r.data);
+export const updateCartItem = (urunId, adet) => api.put(`/api/sepet/${urunId}`, { adet }).then((r) => r.data);
 export const removeFromCart = (urunId) => api.delete(`/api/sepet/${urunId}`).then((r) => r.data);
 
 export const fetchFavorites = () => api.get('/api/favoriler').then((r) => asArray(r.data));
@@ -83,6 +84,7 @@ export const validateCoupon = (kod, araToplam) => api.post('/api/kuponlar/dogrul
 export const processPayment = (data) => api.post('/api/odeme/odeme', data).then((r) => r.data);
 
 export const applyVendor = (data) => api.post('/api/satici/basvuru', data).then((r) => r.data);
+export const prepareSeller = () => api.post('/api/satici/hazir').then((r) => r.data);
 export const fetchMyVendor = () => api.get('/api/satici/benim').then((r) => r.data);
 export const fetchVendorProducts = () => api.get('/api/satici/panel/urunler').then((r) => r.data);
 export const createVendorProduct = (data) => api.post('/api/satici/panel/urunler', data).then((r) => r.data);

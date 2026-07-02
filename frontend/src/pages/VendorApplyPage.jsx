@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { applyVendor } from '../api/client';
+import { registerSeller } from '../api/client';
 import { kayitFormDogrula, apiHataMesaji } from '../utils/apiError';
+import { saticiGirisSonrasi } from '../utils/sellerAuth';
 import SellerLayout from '../components/SellerLayout';
 
 function SellerAuthTabs({ mod, setMod }) {
@@ -14,8 +15,56 @@ function SellerAuthTabs({ mod, setMod }) {
   );
 }
 
-function SellerKayitForm() {
-  const { kayitOl } = useAuth();
+export default function VendorApplyPage() {
+  const { kullanici, yukleniyor, girisYap, kullaniciGuncelle } = useAuth();
+  const navigate = useNavigate();
+  const [authMod, setAuthMod] = useState('kayit');
+  const [basari, setBasari] = useState('');
+
+  if (yukleniyor) {
+    return (
+      <SellerLayout>
+        <main className="seller-main auth-page"><div className="loading">Yükleniyor...</div></main>
+      </SellerLayout>
+    );
+  }
+
+  if (kullanici && ['satici', 'admin'].includes(kullanici.rol)) {
+    navigate('/satici/panel', { replace: true });
+    return null;
+  }
+
+  if (kullanici) {
+    navigate('/satici/panel', { replace: true });
+    return null;
+  }
+
+  return (
+    <SellerLayout>
+      <main className="seller-main auth-page">
+        <div className="auth-portal seller-portal">
+          <div className="auth-portal-badge">Satıcı Hesabı</div>
+          <SellerAuthTabs mod={authMod} setMod={(m) => { setBasari(''); setAuthMod(m); }} />
+          {basari && <div className="auth-success">{basari}</div>}
+          {authMod === 'giris' ? (
+            <SellerGirisForm
+              girisYap={girisYap}
+              kullaniciGuncelle={kullaniciGuncelle}
+              navigate={navigate}
+            />
+          ) : (
+            <SellerKayitForm onKayitTamam={() => { setBasari('Kayıt tamamlandı! Giriş yapın.'); setAuthMod('giris'); }} />
+          )}
+          <p className="auth-alt">
+            Alışveriş yapmak mı istiyorsunuz? <Link to="/">Ana sayfaya dön</Link>
+          </p>
+        </div>
+      </main>
+    </SellerLayout>
+  );
+}
+
+function SellerKayitForm({ onKayitTamam }) {
   const [form, setForm] = useState({ ad: '', soyad: '', email: '', sifre: '', telefon: '' });
   const [hatalar, setHatalar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(false);
@@ -30,7 +79,8 @@ function SellerKayitForm() {
     setHatalar([]);
     setYukleniyor(true);
     try {
-      await kayitOl(form);
+      await registerSeller(form);
+      onKayitTamam?.();
     } catch (err) {
       const apiHatalar = err.response?.data?.hatalar;
       setHatalar(Array.isArray(apiHatalar) && apiHatalar.length ? apiHatalar : [apiHataMesaji(err, 'Kayıt başarısız.')]);
@@ -41,8 +91,8 @@ function SellerKayitForm() {
 
   return (
     <form className="auth-form wide seller-auth-form" onSubmit={handleSubmit} noValidate>
-      <h1>Satıcı Hesabı Oluşturun</h1>
-      <p className="auth-sub">Önce üye olun, ardından mağaza başvurunuzu tamamlayın</p>
+      <h1>Satıcı Kaydı</h1>
+      <p className="auth-sub">Hesabınızı oluşturun, ardından giriş yaparak ilan vermeye başlayın</p>
       {hatalar.length > 0 && (
         <div className="auth-error">
           {hatalar.length === 1 ? hatalar[0] : (
@@ -58,14 +108,13 @@ function SellerKayitForm() {
       <label>Şifre<input type="password" value={form.sifre} onChange={(e) => setForm({ ...form, sifre: e.target.value })} required minLength={6} /></label>
       <label>Telefon<input value={form.telefon} onChange={(e) => setForm({ ...form, telefon: e.target.value })} placeholder="05xx xxx xx xx" /></label>
       <button type="submit" className="auth-submit seller-submit" disabled={yukleniyor}>
-        {yukleniyor ? 'Kayıt oluşturuluyor...' : 'Kayıt Ol ve Devam Et'}
+        {yukleniyor ? 'Kayıt oluşturuluyor...' : 'Kayıt Ol'}
       </button>
     </form>
   );
 }
 
-function SellerGirisForm() {
-  const { girisYap } = useAuth();
+function SellerGirisForm({ girisYap, kullaniciGuncelle, navigate }) {
   const [email, setEmail] = useState('');
   const [sifre, setSifre] = useState('');
   const [hata, setHata] = useState('');
@@ -76,9 +125,10 @@ function SellerGirisForm() {
     setHata('');
     setYukleniyor(true);
     try {
-      await girisYap(email, sifre);
+      await saticiGirisSonrasi(girisYap, email, sifre, kullaniciGuncelle);
+      navigate('/satici/panel', { replace: true });
     } catch (err) {
-      setHata(err.response?.data?.mesaj || 'Giriş başarısız.');
+      setHata(err.response?.data?.mesaj || err.message || 'Giriş başarısız.');
     } finally {
       setYukleniyor(false);
     }
@@ -87,107 +137,13 @@ function SellerGirisForm() {
   return (
     <form className="auth-form wide seller-auth-form" onSubmit={handleSubmit}>
       <h1>Satıcı Girişi</h1>
-      <p className="auth-sub">Hesabınız varsa giriş yapın ve başvuruya devam edin</p>
+      <p className="auth-sub">Giriş yaptıktan sonra ilan verme paneline yönlendirileceksiniz</p>
       {hata && <div className="auth-error">{hata}</div>}
       <label>E-posta<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
       <label>Şifre<input type="password" value={sifre} onChange={(e) => setSifre(e.target.value)} required minLength={6} /></label>
       <button type="submit" className="auth-submit seller-submit" disabled={yukleniyor}>
-        {yukleniyor ? 'Giriş yapılıyor...' : 'Giriş Yap ve Devam Et'}
+        {yukleniyor ? 'Giriş yapılıyor...' : 'Giriş Yap — İlan Paneline Git'}
       </button>
     </form>
-  );
-}
-
-export default function VendorApplyPage() {
-  const { kullanici, yukleniyor, profilYenile, kullaniciGuncelle } = useAuth();
-  const navigate = useNavigate();
-  const [authMod, setAuthMod] = useState('kayit');
-  const [form, setForm] = useState({ magazaAdi: '', vergiNo: '', telefon: '', adres: '', aciklama: '' });
-  const [mesaj, setMesaj] = useState('');
-  const [hata, setHata] = useState('');
-  const [gonderiliyor, setGonderiliyor] = useState(false);
-
-  const basvuruGonder = async (e) => {
-    e.preventDefault();
-    setGonderiliyor(true);
-    setHata('');
-    try {
-      const sonuc = await applyVendor(form);
-      if (sonuc?.kullanici) kullaniciGuncelle(sonuc.kullanici);
-      else await profilYenile();
-      setMesaj(sonuc?.durum === 'onayli'
-        ? 'Mağazanız onaylandı! Satıcı paneline yönlendiriliyorsunuz...'
-        : 'Başvurunuz alındı. Admin onayı bekleniyor.');
-      setTimeout(() => navigate('/satici/panel'), 1200);
-    } catch (err) {
-      setHata(err.response?.data?.mesaj || 'Başvuru gönderilemedi.');
-    } finally {
-      setGonderiliyor(false);
-    }
-  };
-
-  if (yukleniyor) {
-    return (
-      <SellerLayout>
-        <main className="seller-main auth-page"><div className="loading">Yükleniyor...</div></main>
-      </SellerLayout>
-    );
-  }
-
-  if (!kullanici) {
-    return (
-      <SellerLayout>
-        <main className="seller-main auth-page">
-          <div className="auth-portal seller-portal">
-            <div className="auth-portal-badge">Satıcı Başvurusu</div>
-            <SellerAuthTabs mod={authMod} setMod={setAuthMod} />
-            {authMod === 'giris' ? (
-              <SellerGirisForm />
-            ) : (
-              <SellerKayitForm />
-            )}
-            <p className="auth-alt">
-              Alışveriş yapmak mı istiyorsunuz? <Link to="/">Ana sayfaya dön</Link>
-            </p>
-          </div>
-        </main>
-      </SellerLayout>
-    );
-  }
-
-  if (['satici', 'admin'].includes(kullanici.rol)) {
-    return (
-      <SellerLayout>
-        <main className="seller-main auth-page">
-          <div className="auth-form wide seller-auth-form">
-            <h1 className="page-title">Zaten satıcısınız</h1>
-            <p className="auth-sub">Mağazanızı satıcı panelinden yönetebilirsiniz.</p>
-            <Link to="/satici/panel" className="auth-submit seller-submit link-btn">Satıcı Paneline Git</Link>
-          </div>
-        </main>
-      </SellerLayout>
-    );
-  }
-
-  return (
-    <SellerLayout>
-      <main className="seller-main auth-page">
-        <form className="auth-form wide seller-auth-form" onSubmit={basvuruGonder}>
-          <h1 className="page-title">Satıcı Başvurusu</h1>
-          <p className="auth-sub">Merhaba {kullanici.ad}, mağaza bilgilerinizi doldurun</p>
-          {mesaj && <div className="auth-success">{mesaj}</div>}
-          {hata && <div className="auth-error">{hata}</div>}
-          <label>Mağaza Adı<input value={form.magazaAdi} onChange={(e) => setForm({ ...form, magazaAdi: e.target.value })} required /></label>
-          <label>Vergi No<input value={form.vergiNo} onChange={(e) => setForm({ ...form, vergiNo: e.target.value })} required /></label>
-          <label>Telefon<input value={form.telefon} onChange={(e) => setForm({ ...form, telefon: e.target.value })} placeholder={kullanici.telefon || '05xx xxx xx xx'} /></label>
-          <label>Adres<textarea value={form.adres} onChange={(e) => setForm({ ...form, adres: e.target.value })} rows={2} /></label>
-          <label>Açıklama<textarea value={form.aciklama} onChange={(e) => setForm({ ...form, aciklama: e.target.value })} rows={3} placeholder="Mağazanızı kısaca tanıtın" /></label>
-          <button type="submit" className="auth-submit seller-submit" disabled={gonderiliyor}>
-            {gonderiliyor ? 'Gönderiliyor...' : 'Başvuru Gönder'}
-          </button>
-          <p className="auth-alt"><Link to="/satici/giris">Farklı hesapla giriş yap</Link></p>
-        </form>
-      </main>
-    </SellerLayout>
   );
 }

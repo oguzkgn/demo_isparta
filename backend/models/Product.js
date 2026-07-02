@@ -13,6 +13,7 @@ const productSchema = new mongoose.Schema({
   puan: { type: Number, default: 4.5 },
   yorumSayisi: { type: Number, default: 0 },
   resim: String,
+  videoUrl: String,
   oneCikan: { type: Boolean, default: false },
   satici: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' },
   saticiAd: String,

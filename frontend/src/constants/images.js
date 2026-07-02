@@ -49,7 +49,7 @@ export function isEmojiOnly(val) {
 
 export function productImageSrc(urun) {
   if (urun?.resim && !isEmojiOnly(urun.resim)) {
-    if (urun.resim.startsWith('http')) return urun.resim;
+    if (urun.resim.startsWith('http') || urun.resim.startsWith('data:')) return urun.resim;
   }
   if (urun?.ad && PRODUCT_IMAGES[urun.ad]) return PRODUCT_IMAGES[urun.ad];
   return CATEGORY_IMAGES[urun?.kategori] || DEFAULT_PRODUCT;

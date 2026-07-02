@@ -13,6 +13,37 @@ function memoryMod(req) {
   return !dbBagli() || memoryStore.isMemoryUser(req.user._id) || req.memoryMode;
 }
 
+router.post('/hazir', authZorunlu, async (req, res) => {
+  try {
+    if (!memoryMod(req)) {
+      try {
+        let vendor = await Vendor.findOne({ kullanici: req.user._id });
+        let user = await User.findById(req.user._id).select('-sifre');
+        if (!vendor) {
+          vendor = await Vendor.create({
+            kullanici: req.user._id,
+            magazaAdi: `${user.ad} ${user.soyad} Mağazası`,
+            vergiNo: '0000000000',
+            telefon: user.telefon || '',
+            email: user.email,
+            durum: 'onayli'
+          });
+          user = await User.findByIdAndUpdate(req.user._id, { rol: 'satici' }, { new: true }).select('-sifre');
+        } else if (user.rol !== 'satici' && user.rol !== 'admin' && vendor.durum === 'onayli') {
+          user = await User.findByIdAndUpdate(req.user._id, { rol: 'satici' }, { new: true }).select('-sifre');
+        }
+        return res.json({ vendor, kullanici: user });
+      } catch (err) {
+        console.error('[Demo] Mongo satici hazir hatasi, bellek modu:', err.message);
+      }
+    }
+    const { vendor, kullanici } = await memoryStore.saticiHazirla(req.user._id);
+    res.json({ vendor, kullanici });
+  } catch (err) {
+    res.status(err.status || 500).json({ mesaj: err.message || 'Satıcı hesabı hazırlanamadı.' });
+  }
+});
+
 router.post('/basvuru', authZorunlu, async (req, res) => {
   try {
     if (['satici', 'admin'].includes(req.user.rol)) {

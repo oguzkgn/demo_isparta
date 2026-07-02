@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { fetchFavorites, removeFavorite } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { asArray } from '../utils/safe';
 import Layout from '../components/Layout';
 import ProductCard from '../components/ProductCard';
 import EmptyState from '../components/EmptyState';
@@ -20,13 +21,13 @@ export default function FavoritesPage({ arama, setArama, kategori, setKategori, 
       return;
     }
     fetchFavorites()
-      .then(setFavoriler)
+      .then((list) => setFavoriler(asArray(list)))
       .catch(() => setFavoriler([]))
       .finally(() => setYukleniyor(false));
   }, [kullanici, navigate]);
 
   const cikar = async (id) => {
-    const list = await removeFavorite(id);
+    const list = asArray(await removeFavorite(id));
     setFavoriler(list);
   };
 

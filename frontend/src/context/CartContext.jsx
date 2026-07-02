@@ -41,35 +41,48 @@ export function CartProvider({ children }) {
 
   const sepeteEkle = async (urun, opts = {}) => {
     const { beden, renk, adet = 1 } = opts;
-    if (kullanici) {
-      const data = await addToCart(urun._id, adet, beden, renk);
-      setSepet(data.map((x) => ({ ...x.urun, adet: x.adet, beden: x.beden, renk: x.renk })));
-    } else {
-      setSepet((prev) => {
-        const mevcut = prev.find((x) => x._id === urun._id);
-        if (mevcut) {
-          return prev.map((x) => (x._id === urun._id ? { ...x, adet: x.adet + adet } : x));
-        }
-        return [...prev, { ...urun, adet, beden, renk }];
-      });
+    try {
+      if (kullanici) {
+        const data = asArray(await addToCart(urun._id, adet, beden, renk));
+        setSepet(data.map((x) => ({ ...x.urun, adet: x.adet, beden: x.beden, renk: x.renk })).filter((x) => x._id));
+      } else {
+        setSepet((prev) => {
+          const mevcut = prev.find((x) => x._id === urun._id);
+          if (mevcut) {
+            return prev.map((x) => (x._id === urun._id ? { ...x, adet: x.adet + adet } : x));
+          }
+          return [...prev, { ...urun, adet, beden, renk }];
+        });
+      }
+      setSepetAcik(true);
+    } catch (err) {
+      throw err;
     }
   };
 
   const sepettenCikar = async (id) => {
-    if (kullanici) {
-      const data = await removeFromCart(id);
-      setSepet(data.map((x) => ({ ...x.urun, adet: x.adet })));
-    } else {
+    try {
+      if (kullanici) {
+        const data = asArray(await removeFromCart(id));
+        setSepet(data.map((x) => ({ ...x.urun, adet: x.adet })).filter((x) => x._id));
+      } else {
+        setSepet((prev) => prev.filter((x) => x._id !== id));
+      }
+    } catch {
       setSepet((prev) => prev.filter((x) => x._id !== id));
     }
   };
 
   const adetGuncelle = async (id, adet) => {
-    if (kullanici) {
-      const data = await updateCartItem(id, adet);
-      setSepet(data.map((x) => ({ ...x.urun, adet: x.adet })));
-    } else {
-      setSepet((prev) => prev.map((x) => (x._id === id ? { ...x, adet } : x)));
+    try {
+      if (kullanici) {
+        const data = asArray(await updateCartItem(id, adet));
+        setSepet(data.map((x) => ({ ...x.urun, adet: x.adet })).filter((x) => x._id));
+      } else {
+        setSepet((prev) => prev.map((x) => (x._id === id ? { ...x, adet } : x)));
+      }
+    } catch {
+      /* keep local state */
     }
   };
 

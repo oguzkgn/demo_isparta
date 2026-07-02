@@ -270,6 +270,25 @@ function saticiBul(userId) {
   return [...vendors.values()].find((v) => v.kullaniciId === String(userId)) || null;
 }
 
+async function saticiHazirla(userId) {
+  await ensureInit();
+  const user = users.get(String(userId));
+  if (!user) {
+    const err = new Error('Kullanıcı bulunamadı.');
+    err.status = 404;
+    throw err;
+  }
+  if (['satici', 'admin'].includes(user.rol)) {
+    return { vendor: saticiBul(userId), kullanici: sanitizeUser(user) };
+  }
+  return saticiBasvuru(userId, {
+    magazaAdi: `${user.ad} ${user.soyad} Mağazası`,
+    vergiNo: '0000000000',
+    telefon: user.telefon || '',
+    aciklama: 'Isparta demo satıcı mağazası'
+  });
+}
+
 async function saticiBasvuru(userId, data) {
   await ensureInit();
   const user = users.get(String(userId));
@@ -279,15 +298,13 @@ async function saticiBasvuru(userId, data) {
     throw err;
   }
   if (['satici', 'admin'].includes(user.rol)) {
-    const err = new Error('Zaten satıcı hesabınız var.');
-    err.status = 409;
-    throw err;
+    return { vendor: saticiBul(userId), kullanici: sanitizeUser(user) };
   }
   const mevcut = saticiBul(userId);
   if (mevcut) {
-    const err = new Error('Başvurunuz zaten mevcut.');
-    err.status = 409;
-    throw err;
+    user.rol = 'satici';
+    user.saticiId = mevcut._id;
+    return { vendor: mevcut, kullanici: sanitizeUser(user) };
   }
 
   const vendorId = `mem-vendor-${vendorCounter++}`;
@@ -376,6 +393,7 @@ module.exports = {
   aramaYap,
   saticiBul,
   saticiBasvuru,
+  saticiHazirla,
   saticiUrunleri,
   saticiUrunEkle,
   saticiUrunGuncelle,

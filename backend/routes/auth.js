@@ -12,6 +12,36 @@ function kullaniciDon(res, user, token) {
   res.json({ kullanici: user, token });
 }
 
+router.post('/satici-kayit', async (req, res) => {
+  try {
+    const { ad, soyad, email, sifre, telefon } = req.body;
+    const hatalar = kayitDogrula({ ad, soyad, email, sifre, telefon });
+    if (hatalar.length) {
+      return res.status(400).json({ mesaj: hatalar[0], hatalar, kod: 'DOGRULAMA' });
+    }
+
+    if (dbBagli()) {
+      try {
+        if (await User.findOne({ email: email.toLowerCase() })) {
+          return res.status(409).json({ mesaj: 'Bu e-posta zaten kayıtlı.', kod: 'EPOSTA_KAYITLI' });
+        }
+        await User.create({ ad, soyad, email, sifre, telefon, rol: 'kullanici' });
+        return res.status(201).json({ mesaj: 'Kayıt tamamlandı. Giriş yapabilirsiniz.' });
+      } catch (err) {
+        console.error('[Demo] Mongo satici-kayit hatasi, bellek modu:', err.message);
+      }
+    }
+
+    await memoryStore.kullaniciKayit({ ad, soyad, email, sifre, telefon });
+    res.status(201).json({ mesaj: 'Kayıt tamamlandı. Giriş yapabilirsiniz.' });
+  } catch (err) {
+    res.status(err.status || 500).json({
+      mesaj: err.message || 'Kayıt oluşturulamadı.',
+      kod: err.status === 409 ? 'EPOSTA_KAYITLI' : 'SUNUCU'
+    });
+  }
+});
+
 router.post('/kayit', async (req, res) => {
   try {
     const { ad, soyad, email, sifre, telefon, adres, konum } = req.body;

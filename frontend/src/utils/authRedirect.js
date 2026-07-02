@@ -2,10 +2,6 @@ export function musteriYonlendir(navigate) {
   navigate('/');
 }
 
-export function saticiYonlendir(kullanici, navigate) {
-  if (['satici', 'admin'].includes(kullanici?.rol)) {
-    navigate('/satici/panel');
-  } else {
-    navigate('/satici/basvuru');
-  }
+export function saticiYonlendir(_kullanici, navigate) {
+  navigate('/satici/panel');
 }

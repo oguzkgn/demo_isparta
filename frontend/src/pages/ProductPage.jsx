@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   fetchProduct, fetchCategories, fetchLocations,
   fetchFavorites, addFavorite, removeFavorite,
@@ -15,6 +15,7 @@ import { IconHeart, IconMapPin, IconStar, IconStore } from '../components/icons/
 
 export default function ProductPage({ arama, setArama, kategori, setKategori, konum, setKonum }) {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { kullanici } = useAuth();
   const { sepeteEkle } = useCart();
   const [urun, setUrun] = useState(null);
@@ -51,7 +52,10 @@ export default function ProductPage({ arama, setArama, kategori, setKategori, ko
   }, [kullanici, urun]);
 
   const favoriToggle = async () => {
-    if (!kullanici) return;
+    if (!kullanici) {
+      navigate('/giris');
+      return;
+    }
     if (favori) { await removeFavorite(id); setFavori(false); }
     else { await addFavorite(id); setFavori(true); }
   };
@@ -153,7 +157,9 @@ export default function ProductPage({ arama, setArama, kategori, setKategori, ko
                   </div>
                 )}
                 <div className="detail-actions">
-                  <button type="button" className="add-btn large" onClick={() => sepeteEkle(urun, { beden: seciliBeden, renk: seciliRenk })}>Sepete Ekle</button>
+                  <button type="button" className="add-btn large" onClick={async () => {
+                    try { await sepeteEkle(urun, { beden: seciliBeden, renk: seciliRenk }); } catch { /* sepet hatasi */ }
+                  }}>Sepete Ekle</button>
                   {kullanici ? (
                     <button type="button" className={`fav-btn icon-btn ${favori ? 'active' : ''}`} onClick={favoriToggle}>
                       <IconHeart filled={favori} size={16} />

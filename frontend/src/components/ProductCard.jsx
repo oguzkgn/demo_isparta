@@ -39,7 +39,9 @@ export default function ProductCard({ u, sepeteEkle, favoriMi, favoriToggle }) {
           <span className="price-now">{formatPrice(u.fiyat)}</span>
           {u.eskiFiyat && <span className="price-old">{formatPrice(u.eskiFiyat)}</span>}
         </div>
-        <button type="button" className="add-btn" onClick={() => sepeteEkle(u)}>Sepete Ekle</button>
+        <button type="button" className="add-btn" onClick={async () => {
+          try { await sepeteEkle?.(u); } catch { /* sepet hatasi */ }
+        }}>Sepete Ekle</button>
       </div>
     </article>
   );

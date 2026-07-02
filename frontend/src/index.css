@@ -1,7 +1,7 @@
 :root {
-  --ink: #080510;
-  --ink-soft: #1a1224;
-  --muted: #3a3248;
+  --ink: #030108;
+  --ink-soft: #120a18;
+  --muted: #2a2235;
   --surface: #ffffff;
   --surface-alt: #f9f7fb;
   --surface-strong: rgba(255, 255, 255, 0.97);
@@ -72,7 +72,7 @@ h1, h2, h3, h4 {
 
 p {
   line-height: var(--leading-relaxed);
-  color: var(--ink-soft);
+  color: var(--ink);
 }
 
 button {
