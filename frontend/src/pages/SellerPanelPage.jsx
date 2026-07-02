@@ -1,17 +1,18 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   fetchVendorProducts, createVendorProduct, updateVendorProduct, deleteVendorProduct,
-  fetchVendorOrders, updateVendorOrderStatus, fetchMyVendor, prepareSeller,
+  fetchVendorOrders, updateVendorOrderStatus, prepareSeller,
   fetchCategories, fetchLocations
 } from '../api/client';
 import { formatPrice, DURUM_ETIKET } from '../utils/format';
 import { asArray } from '../utils/safe';
 import { ISPARTA_KONUMLAR } from '../constants/config';
 import SellerLayout from '../components/SellerLayout';
+import SellerGuard from '../components/SellerGuard';
 import ProductImage from '../components/ProductImage';
-import MediaUpload from '../components/MediaUpload';
+import ListingFormFields from '../components/ListingFormFields';
 import EmptyState from '../components/EmptyState';
 
 const BOS_ILAN = {
@@ -19,43 +20,91 @@ const BOS_ILAN = {
   marka: '', aciklama: '', resim: '', videoUrl: ''
 };
 
+function urundenForm(u) {
+  return {
+    ad: u.ad || '',
+    fiyat: u.fiyat ?? '',
+    stok: u.stok ?? 10,
+    kategori: u.kategori || 'lavanta',
+    konum: u.konum || '⭐ Çarşı / Merkez',
+    marka: u.marka || '',
+    aciklama: u.aciklama || '',
+    resim: u.resim || '',
+    videoUrl: u.videoUrl || ''
+  };
+}
+
+function ilanPayload(form) {
+  return {
+    ad: form.ad.trim(),
+    fiyat: Number(form.fiyat),
+    stok: Number(form.stok) || 1,
+    kategori: form.kategori,
+    konum: form.konum,
+    marka: form.marka.trim(),
+    aciklama: form.aciklama.trim(),
+    resim: form.resim || undefined,
+    videoUrl: form.videoUrl || undefined
+  };
+}
+
 export default function SellerPanelPage() {
   const { kullanici, yukleniyor, kullaniciGuncelle } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState('ilan');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') || 'ilan';
+  const setTab = (next) => setSearchParams({ tab: next }, { replace: true });
+
   const [urunler, setUrunler] = useState([]);
   const [siparisler, setSiparisler] = useState([]);
   const [vendor, setVendor] = useState(null);
   const [kategoriler, setKategoriler] = useState([]);
   const [konumlar, setKonumlar] = useState(ISPARTA_KONUMLAR);
   const [yeniUrun, setYeniUrun] = useState(BOS_ILAN);
+  const [duzenlenen, setDuzenlenen] = useState(null);
+  const [duzenleForm, setDuzenleForm] = useState(BOS_ILAN);
   const [ilanMesaj, setIlanMesaj] = useState('');
   const [ilanHata, setIlanHata] = useState('');
+  const [panelHata, setPanelHata] = useState('');
   const [hazir, setHazir] = useState(false);
+
+  const urunleriYenile = useCallback(async () => {
+    const u = await fetchVendorProducts().catch(() => []);
+    setUrunler(asArray(u));
+  }, []);
 
   useEffect(() => {
     if (yukleniyor) return;
     if (!kullanici) {
-      navigate('/satici/basvuru', { replace: true });
+      navigate('/satici/giris', { replace: true });
       return;
     }
+
+    let iptal = false;
     const yukle = async () => {
+      setPanelHata('');
       try {
         const hazirSonuc = await prepareSeller();
+        if (iptal) return;
         if (hazirSonuc?.kullanici) kullaniciGuncelle(hazirSonuc.kullanici);
         if (hazirSonuc?.vendor) setVendor(hazirSonuc.vendor);
-        setHazir(true);
         const [u, s] = await Promise.all([
           fetchVendorProducts().catch(() => []),
           fetchVendorOrders().catch(() => [])
         ]);
+        if (iptal) return;
         setUrunler(asArray(u));
         setSiparisler(asArray(s));
-      } catch {
-        navigate('/satici/basvuru', { replace: true });
+      } catch (err) {
+        if (!iptal) {
+          setPanelHata(err.response?.data?.mesaj || 'Satıcı paneli yüklenemedi. Lütfen tekrar deneyin.');
+        }
+      } finally {
+        if (!iptal) setHazir(true);
       }
     };
     yukle();
+    return () => { iptal = true; };
   }, [kullanici, yukleniyor, navigate, kullaniciGuncelle]);
 
   useEffect(() => {
@@ -67,25 +116,49 @@ export default function SellerPanelPage() {
     e.preventDefault();
     setIlanHata('');
     setIlanMesaj('');
-    if (!yeniUrun.ad.trim() || !yeniUrun.fiyat) {
-      setIlanHata('Ürün adı ve fiyat zorunludur.');
+    if (!yeniUrun.ad.trim() || !yeniUrun.fiyat || !yeniUrun.aciklama.trim()) {
+      setIlanHata('Başlık, açıklama ve fiyat zorunludur.');
       return;
     }
     try {
-      const u = await createVendorProduct({
-        ...yeniUrun,
-        fiyat: Number(yeniUrun.fiyat),
-        stok: Number(yeniUrun.stok) || 1,
-        aciklama: yeniUrun.aciklama.trim(),
-        resim: yeniUrun.resim || undefined,
-        videoUrl: yeniUrun.videoUrl || undefined
-      });
+      const u = await createVendorProduct(ilanPayload(yeniUrun));
       setUrunler((prev) => [u, ...prev]);
       setYeniUrun(BOS_ILAN);
       setIlanMesaj(`"${u.ad}" ilanı yayınlandı! Müşteriler ana sayfada görebilir.`);
       setTab('envanter');
     } catch (err) {
       setIlanHata(err.response?.data?.mesaj || 'İlan yayınlanamadı.');
+    }
+  };
+
+  const ilanGuncelle = async (e) => {
+    e.preventDefault();
+    if (!duzenlenen) return;
+    setIlanHata('');
+    setIlanMesaj('');
+    if (!duzenleForm.ad.trim() || !duzenleForm.fiyat || !duzenleForm.aciklama.trim()) {
+      setIlanHata('Başlık, açıklama ve fiyat zorunludur.');
+      return;
+    }
+    try {
+      await updateVendorProduct(duzenlenen, ilanPayload(duzenleForm));
+      await urunleriYenile();
+      setIlanMesaj('İlan güncellendi.');
+      setDuzenlenen(null);
+      setTab('envanter');
+    } catch (err) {
+      setIlanHata(err.response?.data?.mesaj || 'İlan güncellenemedi.');
+    }
+  };
+
+  const ilanSil = async (id, ad) => {
+    if (!confirm(`"${ad}" ilanını silmek istiyor musunuz?`)) return;
+    try {
+      await deleteVendorProduct(id);
+      setUrunler((prev) => prev.filter((x) => x._id !== id));
+      if (duzenlenen === id) setDuzenlenen(null);
+    } catch (err) {
+      setIlanHata(err.response?.data?.mesaj || 'İlan silinemedi.');
     }
   };
 
@@ -98,82 +171,71 @@ export default function SellerPanelPage() {
   }
 
   return (
+    <SellerGuard>
     <SellerLayout>
       <main className="seller-main">
         <div className="seller-panel-header">
-          <h1 className="page-title">İlan Yönetimi {vendor?.magazaAdi && `— ${vendor.magazaAdi}`}</h1>
-          <p className="seller-panel-sub">Fotoğraf ve video ekleyin, fiyat belirleyin, ilanınızı yayınlayın</p>
+          <h1 className="page-title seller-page-title">İlan Yönetimi {vendor?.magazaAdi && `— ${vendor.magazaAdi}`}</h1>
+          <p className="seller-panel-sub">Fotoğraf ve video yükleyin, açıklama yazın, ilanınızı yayınlayın veya güncelleyin</p>
         </div>
+        {panelHata && <div className="auth-error">{panelHata}</div>}
+        {ilanMesaj && tab !== 'ilan' && <div className="auth-success">{ilanMesaj}</div>}
+
         <div className="profile-tabs seller-tabs">
-          <button type="button" className={tab === 'ilan' ? 'active' : ''} onClick={() => setTab('ilan')}>Yeni İlan Ver</button>
-          <button type="button" className={tab === 'envanter' ? 'active' : ''} onClick={() => setTab('envanter')}>İlanlarım</button>
+          <button type="button" className={tab === 'ilan' ? 'active' : ''} onClick={() => { setDuzenlenen(null); setTab('ilan'); setIlanHata(''); }}>Yeni İlan Ver</button>
+          <button type="button" className={tab === 'envanter' ? 'active' : ''} onClick={() => { setDuzenlenen(null); setTab('envanter'); }}>İlanlarım ({urunler.length})</button>
           <button type="button" className={tab === 'siparisler' ? 'active' : ''} onClick={() => setTab('siparisler')}>Siparişler</button>
         </div>
 
-        {tab === 'ilan' && (
+        {tab === 'ilan' && !duzenlenen && (
           <form className="auth-form wide seller-product-form listing-form" onSubmit={ilanYayinla}>
             <h3>Yeni İlan Oluştur</h3>
             {ilanMesaj && <div className="auth-success">{ilanMesaj}</div>}
             {ilanHata && <div className="auth-error">{ilanHata}</div>}
-            <label>İlan Başlığı<input value={yeniUrun.ad} onChange={(e) => setYeniUrun({ ...yeniUrun, ad: e.target.value })} required placeholder="Örn: Isparta Lavanta Kolonyası 400ml" /></label>
-            <MediaUpload
-              resim={yeniUrun.resim}
-              videoUrl={yeniUrun.videoUrl}
-              onResim={(v) => setYeniUrun({ ...yeniUrun, resim: v })}
-              onVideoUrl={(v) => setYeniUrun({ ...yeniUrun, videoUrl: v })}
-            />
-            <label>Ürün Açıklaması<textarea value={yeniUrun.aciklama} onChange={(e) => setYeniUrun({ ...yeniUrun, aciklama: e.target.value })} rows={4} placeholder="Ürününüzü detaylı anlatın..." required /></label>
-            <div className="form-row">
-              <label>Fiyat (TL)<input type="number" min="1" value={yeniUrun.fiyat} onChange={(e) => setYeniUrun({ ...yeniUrun, fiyat: e.target.value })} required /></label>
-              <label>Stok<input type="number" min="1" value={yeniUrun.stok} onChange={(e) => setYeniUrun({ ...yeniUrun, stok: e.target.value })} /></label>
-            </div>
-            <div className="form-row">
-              <label>Marka<input value={yeniUrun.marka} onChange={(e) => setYeniUrun({ ...yeniUrun, marka: e.target.value })} placeholder="Mağaza markanız" /></label>
-              <label>Kategori
-                <select value={yeniUrun.kategori} onChange={(e) => setYeniUrun({ ...yeniUrun, kategori: e.target.value })}>
-                  {kategoriler.map((k) => <option key={k.id} value={k.id}>{k.ad}</option>)}
-                  {!kategoriler.length && <option value="lavanta">Lavanta & Gül</option>}
-                </select>
-              </label>
-            </div>
-            <label>Mahalle
-              <select value={yeniUrun.konum} onChange={(e) => setYeniUrun({ ...yeniUrun, konum: e.target.value })}>
-                {konumlar.map((k) => <option key={k} value={k}>{k.replace(/^\s*⭐\s*/, '')}</option>)}
-              </select>
-            </label>
+            <ListingFormFields form={yeniUrun} setForm={setYeniUrun} kategoriler={kategoriler} konumlar={konumlar} />
             <button type="submit" className="auth-submit seller-submit">İlanı Yayınla</button>
           </form>
         )}
 
         {tab === 'envanter' && (
-          <div className="product-grid seller-grid">
-            {urunler.length === 0 ? (
-              <EmptyState title="Henüz ilan yok" description="Yeni İlan Ver sekmesinden ilk ilanınızı oluşturun." />
-            ) : (
-              urunler.map((u) => (
-                <article key={u._id} className="product-card seller-card">
-                  <ProductImage urun={u} />
-                  <div className="product-body">
-                    <h3 className="product-title">{u.ad}</h3>
-                    <p>{formatPrice(u.fiyat)} · Stok: {u.stok}</p>
-                    <div className="card-actions">
-                      <button type="button" className="fav-btn small" onClick={async () => {
-                        const stok = prompt('Yeni stok:', u.stok);
-                        if (stok == null) return;
-                        await updateVendorProduct(u._id, { stok: Number(stok) });
-                        setUrunler(asArray(await fetchVendorProducts()));
-                      }}>Stok</button>
-                      <button type="button" className="fav-btn small danger" onClick={async () => {
-                        if (!confirm('Bu ilanı silmek istiyor musunuz?')) return;
-                        await deleteVendorProduct(u._id);
-                        setUrunler((prev) => prev.filter((x) => x._id !== u._id));
-                      }}>Sil</button>
-                    </div>
-                  </div>
-                </article>
-              ))
+          <>
+            {duzenlenen && (
+              <form className="auth-form wide seller-product-form listing-form listing-form-edit" onSubmit={ilanGuncelle}>
+                <h3>İlanı Düzenle</h3>
+                {ilanHata && <div className="auth-error">{ilanHata}</div>}
+                <ListingFormFields form={duzenleForm} setForm={setDuzenleForm} kategoriler={kategoriler} konumlar={konumlar} />
+                <div className="listing-form-actions">
+                  <button type="submit" className="auth-submit seller-submit">Değişiklikleri Kaydet</button>
+                  <button type="button" className="fav-btn" onClick={() => { setDuzenlenen(null); setIlanHata(''); }}>İptal</button>
+                </div>
+              </form>
             )}
-          </div>
+            <div className="product-grid seller-grid">
+              {urunler.length === 0 ? (
+                <EmptyState title="Henüz ilan yok" description="Yeni İlan Ver sekmesinden ilk ilanınızı oluşturun." />
+              ) : (
+                urunler.map((u) => (
+                  <article key={u._id} className="product-card seller-card">
+                    <ProductImage urun={u} />
+                    <div className="product-body">
+                      <h3 className="product-title">{u.ad}</h3>
+                      <p className="seller-listing-price">{formatPrice(u.fiyat)} · Stok: {u.stok}</p>
+                      {u.aciklama && <p className="seller-listing-desc">{u.aciklama.slice(0, 90)}{u.aciklama.length > 90 ? '…' : ''}</p>}
+                      <div className="card-actions">
+                        <button type="button" className="fav-btn small seller-btn-edit" onClick={() => {
+                          setDuzenlenen(u._id);
+                          setDuzenleForm(urundenForm(u));
+                          setIlanHata('');
+                          setIlanMesaj('');
+                        }}>Düzenle</button>
+                        <button type="button" className="fav-btn small danger" onClick={() => ilanSil(u._id, u.ad)}>Sil</button>
+                      </div>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+          </>
         )}
 
         {tab === 'siparisler' && (
@@ -205,5 +267,6 @@ export default function SellerPanelPage() {
         )}
       </main>
     </SellerLayout>
+    </SellerGuard>
   );
 }

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { registerSeller } from '../api/client';
+import { registerSeller, prepareSeller } from '../api/client';
 import { kayitFormDogrula, apiHataMesaji } from '../utils/apiError';
 import { saticiGirisSonrasi } from '../utils/sellerAuth';
 import SellerLayout from '../components/SellerLayout';
@@ -16,10 +16,16 @@ function SellerAuthTabs({ mod, setMod }) {
 }
 
 export default function VendorApplyPage() {
-  const { kullanici, yukleniyor, girisYap, kullaniciGuncelle } = useAuth();
+  const { kullanici, yukleniyor, girisYap, kullaniciGuncelle, cikisYap } = useAuth();
   const navigate = useNavigate();
   const [authMod, setAuthMod] = useState('kayit');
-  const [basari, setBasari] = useState('');
+
+  useEffect(() => {
+    if (yukleniyor || !kullanici) return;
+    if (['satici', 'admin'].includes(kullanici.rol)) {
+      navigate('/satici/panel?tab=ilan', { replace: true });
+    }
+  }, [yukleniyor, kullanici, navigate]);
 
   if (yukleniyor) {
     return (
@@ -29,14 +35,29 @@ export default function VendorApplyPage() {
     );
   }
 
-  if (kullanici && ['satici', 'admin'].includes(kullanici.rol)) {
-    navigate('/satici/panel', { replace: true });
-    return null;
+  if (kullanici && kullanici.rol === 'kullanici') {
+    return (
+      <SellerLayout>
+        <main className="seller-main auth-page">
+          <div className="auth-portal seller-portal">
+            <div className="auth-portal-badge">Satıcı Hesabı</div>
+            <div className="auth-form wide seller-auth-form">
+              <h1>Müşteri hesabı açık</h1>
+              <p className="auth-sub">Satıcı kaydı ayrı bir hesaptır. Önce müşteri oturumunu kapatın, ardından satıcı kaydı oluşturun.</p>
+              <button type="button" className="auth-submit seller-submit" onClick={() => cikisYap()}>Çıkış Yap ve Devam Et</button>
+            </div>
+          </div>
+        </main>
+      </SellerLayout>
+    );
   }
 
   if (kullanici) {
-    navigate('/satici/panel', { replace: true });
-    return null;
+    return (
+      <SellerLayout>
+        <main className="seller-main auth-page"><div className="loading">Panele yönlendiriliyor...</div></main>
+      </SellerLayout>
+    );
   }
 
   return (
@@ -44,27 +65,20 @@ export default function VendorApplyPage() {
       <main className="seller-main auth-page">
         <div className="auth-portal seller-portal">
           <div className="auth-portal-badge">Satıcı Hesabı</div>
-          <SellerAuthTabs mod={authMod} setMod={(m) => { setBasari(''); setAuthMod(m); }} />
-          {basari && <div className="auth-success">{basari}</div>}
+          <SellerAuthTabs mod={authMod} setMod={(m) => setAuthMod(m)} />
           {authMod === 'giris' ? (
-            <SellerGirisForm
-              girisYap={girisYap}
-              kullaniciGuncelle={kullaniciGuncelle}
-              navigate={navigate}
-            />
+            <SellerGirisForm girisYap={girisYap} kullaniciGuncelle={kullaniciGuncelle} cikisYap={cikisYap} navigate={navigate} />
           ) : (
-            <SellerKayitForm onKayitTamam={() => { setBasari('Kayıt tamamlandı! Giriş yapın.'); setAuthMod('giris'); }} />
+            <SellerKayitForm girisYap={girisYap} kullaniciGuncelle={kullaniciGuncelle} navigate={navigate} />
           )}
-          <p className="auth-alt">
-            Alışveriş yapmak mı istiyorsunuz? <Link to="/">Ana sayfaya dön</Link>
-          </p>
+          <p className="auth-alt seller-only-note">Satıcı ve müşteri hesapları birbirinden bağımsızdır.</p>
         </div>
       </main>
     </SellerLayout>
   );
 }
 
-function SellerKayitForm({ onKayitTamam }) {
+function SellerKayitForm({ girisYap, kullaniciGuncelle, navigate }) {
   const [form, setForm] = useState({ ad: '', soyad: '', email: '', sifre: '', telefon: '' });
   const [hatalar, setHatalar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(false);
@@ -79,8 +93,16 @@ function SellerKayitForm({ onKayitTamam }) {
     setHatalar([]);
     setYukleniyor(true);
     try {
-      await registerSeller(form);
-      onKayitTamam?.();
+      const sonuc = await registerSeller(form);
+      if (sonuc?.token && sonuc?.kullanici) {
+        localStorage.setItem('demo-token', sonuc.token);
+        kullaniciGuncelle(sonuc.kullanici);
+      } else {
+        await girisYap(form.email, form.sifre);
+      }
+      const hazir = await prepareSeller();
+      if (hazir?.kullanici) kullaniciGuncelle(hazir.kullanici);
+      navigate('/satici/panel?tab=ilan', { replace: true });
     } catch (err) {
       const apiHatalar = err.response?.data?.hatalar;
       setHatalar(Array.isArray(apiHatalar) && apiHatalar.length ? apiHatalar : [apiHataMesaji(err, 'Kayıt başarısız.')]);
@@ -92,7 +114,7 @@ function SellerKayitForm({ onKayitTamam }) {
   return (
     <form className="auth-form wide seller-auth-form" onSubmit={handleSubmit} noValidate>
       <h1>Satıcı Kaydı</h1>
-      <p className="auth-sub">Hesabınızı oluşturun, ardından giriş yaparak ilan vermeye başlayın</p>
+      <p className="auth-sub">Hesabınızı oluşturun; kayıt sonrası doğrudan ilan paneline gidersiniz</p>
       {hatalar.length > 0 && (
         <div className="auth-error">
           {hatalar.length === 1 ? hatalar[0] : (
@@ -108,13 +130,13 @@ function SellerKayitForm({ onKayitTamam }) {
       <label>Şifre<input type="password" value={form.sifre} onChange={(e) => setForm({ ...form, sifre: e.target.value })} required minLength={6} /></label>
       <label>Telefon<input value={form.telefon} onChange={(e) => setForm({ ...form, telefon: e.target.value })} placeholder="05xx xxx xx xx" /></label>
       <button type="submit" className="auth-submit seller-submit" disabled={yukleniyor}>
-        {yukleniyor ? 'Kayıt oluşturuluyor...' : 'Kayıt Ol'}
+        {yukleniyor ? 'Kayıt oluşturuluyor...' : 'Kayıt Ol — İlan Paneline Git'}
       </button>
     </form>
   );
 }
 
-function SellerGirisForm({ girisYap, kullaniciGuncelle, navigate }) {
+function SellerGirisForm({ girisYap, kullaniciGuncelle, cikisYap, navigate }) {
   const [email, setEmail] = useState('');
   const [sifre, setSifre] = useState('');
   const [hata, setHata] = useState('');
@@ -125,8 +147,8 @@ function SellerGirisForm({ girisYap, kullaniciGuncelle, navigate }) {
     setHata('');
     setYukleniyor(true);
     try {
-      await saticiGirisSonrasi(girisYap, email, sifre, kullaniciGuncelle);
-      navigate('/satici/panel', { replace: true });
+      await saticiGirisSonrasi(girisYap, email, sifre, kullaniciGuncelle, cikisYap);
+      navigate('/satici/panel?tab=ilan', { replace: true });
     } catch (err) {
       setHata(err.response?.data?.mesaj || err.message || 'Giriş başarısız.');
     } finally {

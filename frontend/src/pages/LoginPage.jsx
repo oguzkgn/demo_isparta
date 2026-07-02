@@ -6,7 +6,7 @@ import { musteriYonlendir } from '../utils/authRedirect';
 import Layout from '../components/Layout';
 
 export default function LoginPage({ arama, setArama, kategori, setKategori, konum, setKonum }) {
-  const { girisYap, googleGiris, appleGiris } = useAuth();
+  const { girisYap, googleGiris, appleGiris, cikisYap } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [sifre, setSifre] = useState('');
@@ -18,7 +18,12 @@ export default function LoginPage({ arama, setArama, kategori, setKategori, konu
     setHata('');
     setYukleniyor(true);
     try {
-      await girisYap(email, sifre);
+      const u = await girisYap(email, sifre);
+      if (u.rol === 'satici') {
+        cikisYap();
+        setHata('Bu hesap satıcı hesabıdır. Satıcı girişi ayrı bir adresten yapılır.');
+        return;
+      }
       musteriYonlendir(navigate);
     } catch (err) {
       setHata(apiHataMesaji(err, 'Giriş başarısız.'));
@@ -60,12 +65,6 @@ export default function LoginPage({ arama, setArama, kategori, setKategori, konu
               <button type="button" className="social-btn apple" onClick={appleIle}>Apple ile Giriş</button>
             </div>
             <p className="auth-alt">Hesabınız yok mu? <Link to="/kayit">Kayıt olun</Link></p>
-            <div className="auth-divider">
-              <span>veya</span>
-            </div>
-            <Link to="/satici/giris" className="seller-entry-link">
-              Satıcı mısınız? Satıcı girişi
-            </Link>
           </form>
         </div>
       </main>

@@ -4,8 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { searchProducts } from '../api/client';
 import { asArray } from '../utils/safe';
-import { IconCart, IconHeart, IconPackage, IconSearch, IconStore, IconTag, IconUser } from './icons/Icons';
+import { IconCart, IconHeart, IconPackage, IconSearch, IconTag, IconUser } from './icons/Icons';
 import CartPanel from './CartPanel';
+import CustomerGuard from './CustomerGuard';
 
 export default function Layout({ children, kategoriler, kategori, setKategori, arama, setArama, onAra }) {
   const { kullanici, cikisYap } = useAuth();
@@ -34,6 +35,7 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
   };
 
   return (
+    <CustomerGuard>
     <>
       <header className="header">
         <div className="header-top">
@@ -84,10 +86,6 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
               <>
                 <Link to="/giris" className="header-link">Giriş</Link>
                 <Link to="/kayit" className="header-link register-link">Kayıt Ol</Link>
-                <Link to="/satici/giris" className="header-link seller-link">
-                  <IconStore size={15} />
-                  <span>Satıcı</span>
-                </Link>
               </>
             )}
             <button type="button" className="cart-btn" onClick={() => setSepetAcik(true)} aria-label="Sepet">
@@ -130,5 +128,6 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
 
       <CartPanel />
     </>
+    </CustomerGuard>
   );
 }

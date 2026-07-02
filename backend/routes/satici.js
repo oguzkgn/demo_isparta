@@ -13,6 +13,47 @@ function memoryMod(req) {
   return !dbBagli() || memoryStore.isMemoryUser(req.user._id) || req.memoryMode;
 }
 
+async function ensureSatici(req) {
+  if (['satici', 'admin'].includes(req.user.rol)) return;
+
+  if (!memoryMod(req)) {
+    try {
+      let vendor = await Vendor.findOne({ kullanici: req.user._id });
+      let user = await User.findById(req.user._id).select('-sifre');
+      if (!vendor) {
+        vendor = await Vendor.create({
+          kullanici: req.user._id,
+          magazaAdi: `${user.ad} ${user.soyad} Mağazası`,
+          vergiNo: '0000000000',
+          telefon: user.telefon || '',
+          email: user.email,
+          durum: 'onayli'
+        });
+      }
+      if (user.rol !== 'satici' && user.rol !== 'admin') {
+        user = await User.findByIdAndUpdate(req.user._id, { rol: 'satici' }, { new: true }).select('-sifre');
+      }
+      req.user = user;
+      return;
+    } catch (err) {
+      console.error('[Demo] Mongo ensureSatici hatasi:', err.message);
+      if (!memoryStore.isMemoryUser(req.user._id)) throw err;
+    }
+  }
+
+  const { kullanici } = await memoryStore.saticiHazirla(req.user._id);
+  req.user = kullanici;
+}
+
+async function ensureSaticiMiddleware(req, res, next) {
+  try {
+    await ensureSatici(req);
+    next();
+  } catch (err) {
+    res.status(err.status || 500).json({ mesaj: err.message || 'Satıcı hesabı hazırlanamadı.' });
+  }
+}
+
 router.post('/hazir', authZorunlu, async (req, res) => {
   try {
     if (!memoryMod(req)) {
@@ -34,7 +75,10 @@ router.post('/hazir', authZorunlu, async (req, res) => {
         }
         return res.json({ vendor, kullanici: user });
       } catch (err) {
-        console.error('[Demo] Mongo satici hazir hatasi, bellek modu:', err.message);
+        console.error('[Demo] Mongo satici hazir hatasi:', err.message);
+        if (!memoryStore.isMemoryUser(req.user._id)) {
+          return res.status(500).json({ mesaj: 'Satıcı hesabı hazırlanamadı.' });
+        }
       }
     }
     const { vendor, kullanici } = await memoryStore.saticiHazirla(req.user._id);
@@ -110,7 +154,7 @@ router.patch('/:id/reddet', authZorunlu, rolZorunlu('admin'), async (req, res) =
   res.json(vendor);
 });
 
-router.get('/panel/urunler', authZorunlu, rolZorunlu('satici', 'admin'), async (req, res) => {
+router.get('/panel/urunler', authZorunlu, ensureSaticiMiddleware, async (req, res) => {
   try {
     if (!memoryMod(req)) {
       const vendor = await Vendor.findOne({ kullanici: req.user._id });
@@ -124,7 +168,7 @@ router.get('/panel/urunler', authZorunlu, rolZorunlu('satici', 'admin'), async (
   }
 });
 
-router.post('/panel/urunler', authZorunlu, rolZorunlu('satici', 'admin'), async (req, res) => {
+router.post('/panel/urunler', authZorunlu, ensureSaticiMiddleware, async (req, res) => {
   try {
     if (!memoryMod(req)) {
       const vendor = await Vendor.findOne({ kullanici: req.user._id, durum: 'onayli' });
@@ -140,7 +184,7 @@ router.post('/panel/urunler', authZorunlu, rolZorunlu('satici', 'admin'), async 
   }
 });
 
-router.put('/panel/urunler/:id', authZorunlu, rolZorunlu('satici', 'admin'), async (req, res) => {
+router.put('/panel/urunler/:id', authZorunlu, ensureSaticiMiddleware, async (req, res) => {
   try {
     if (!memoryMod(req)) {
       const vendor = await Vendor.findOne({ kullanici: req.user._id });
@@ -159,7 +203,7 @@ router.put('/panel/urunler/:id', authZorunlu, rolZorunlu('satici', 'admin'), asy
   }
 });
 
-router.delete('/panel/urunler/:id', authZorunlu, rolZorunlu('satici', 'admin'), async (req, res) => {
+router.delete('/panel/urunler/:id', authZorunlu, ensureSaticiMiddleware, async (req, res) => {
   try {
     if (!memoryMod(req)) {
       const vendor = await Vendor.findOne({ kullanici: req.user._id });
@@ -175,7 +219,7 @@ router.delete('/panel/urunler/:id', authZorunlu, rolZorunlu('satici', 'admin'), 
   }
 });
 
-router.get('/panel/siparisler', authZorunlu, rolZorunlu('satici', 'admin'), async (req, res) => {
+router.get('/panel/siparisler', authZorunlu, ensureSaticiMiddleware, async (req, res) => {
   try {
     if (!memoryMod(req)) {
       const vendor = await Vendor.findOne({ kullanici: req.user._id });
@@ -189,7 +233,7 @@ router.get('/panel/siparisler', authZorunlu, rolZorunlu('satici', 'admin'), asyn
   }
 });
 
-router.patch('/panel/siparisler/:id/durum', authZorunlu, rolZorunlu('satici', 'admin'), async (req, res) => {
+router.patch('/panel/siparisler/:id/durum', authZorunlu, ensureSaticiMiddleware, async (req, res) => {
   try {
     if (!memoryMod(req)) {
       const { durum } = req.body;

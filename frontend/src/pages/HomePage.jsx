@@ -136,97 +136,90 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
         </div>
       </section>
 
-      <section className="shop-controls">
-        <div className="shop-controls-inner">
-          <div className="filter-bar-top">
-            <span className="filter-bar-label">Filtrele</span>
-            <div className="filter-bar-fields">
-              <label>Mahalle
-                <select value={konum} onChange={(e) => setKonum(e.target.value)}>
-                  <option value="">Tüm Mahalleler</option>
-                  {Array.isArray(konumlar) && konumlar.map((k) => (
-                    <option key={k} value={k}>{konumMetni(k)}</option>
-                  ))}
-                </select>
-              </label>
-              <label>Marka
-                <select value={filtre.marka} onChange={(e) => setFiltre({ ...filtre, marka: e.target.value })}>
-                  <option value="">Tümü</option>
-                  {Array.isArray(markalar) && markalar.map((m) => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </label>
-              <label>Min Fiyat<input type="number" value={filtre.minFiyat} onChange={(e) => setFiltre({ ...filtre, minFiyat: e.target.value })} /></label>
-              <label>Max Fiyat<input type="number" value={filtre.maxFiyat} onChange={(e) => setFiltre({ ...filtre, maxFiyat: e.target.value })} /></label>
-              <label>Min Puan
-                <select value={filtre.minPuan} onChange={(e) => setFiltre({ ...filtre, minPuan: e.target.value })}>
-                  <option value="">Tümü</option>
-                  {[4, 4.5, 5].map((p) => <option key={p} value={p}>{p}+ puan</option>)}
-                </select>
-              </label>
-              <button type="button" className="fav-btn filter-clear-btn" onClick={() => {
-                setKonum('');
-                setFiltre({ marka: '', minFiyat: '', maxFiyat: '', minPuan: '' });
-                setSiralama('');
-              }}>Temizle</button>
-            </div>
-          </div>
-          <div className="shop-toolbar-top">
+      <div className="shop-layout">
+        <aside className="filter-sidebar">
+          <h3>Filtrele</h3>
+          <label>Mahalle
+            <select value={konum} onChange={(e) => setKonum(e.target.value)}>
+              <option value="">Tüm Mahalleler</option>
+              {Array.isArray(konumlar) && konumlar.map((k) => (
+                <option key={k} value={k}>{konumMetni(k)}</option>
+              ))}
+            </select>
+          </label>
+          <label>Marka
+            <select value={filtre.marka} onChange={(e) => setFiltre({ ...filtre, marka: e.target.value })}>
+              <option value="">Tümü</option>
+              {Array.isArray(markalar) && markalar.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </label>
+          <label>Min Fiyat<input type="number" value={filtre.minFiyat} onChange={(e) => setFiltre({ ...filtre, minFiyat: e.target.value })} /></label>
+          <label>Max Fiyat<input type="number" value={filtre.maxFiyat} onChange={(e) => setFiltre({ ...filtre, maxFiyat: e.target.value })} /></label>
+          <label>Min Puan
+            <select value={filtre.minPuan} onChange={(e) => setFiltre({ ...filtre, minPuan: e.target.value })}>
+              <option value="">Tümü</option>
+              {[4, 4.5, 5].map((p) => <option key={p} value={p}>{p}+ puan</option>)}
+            </select>
+          </label>
+          <div className="filter-sidebar-divider" />
+          <h4 className="filter-sidebar-subtitle">Sıralama</h4>
+          <label>Sıralama
             <select value={siralama} onChange={(e) => setSiralama(e.target.value)} aria-label="Sıralama">
-              <option value="">Sıralama</option>
+              <option value="">Varsayılan</option>
               <option value="fiyatArtan">Fiyat: Artan</option>
               <option value="fiyatAzalan">Fiyat: Azalan</option>
               <option value="puan">Puan: Yüksekten düşüğe</option>
               <option value="puanArtan">Puan: Düşükten yükseğe</option>
             </select>
-            {konum && (
-              <span className="filter-chip">
-                {konumMetni(konum)}
-                <button type="button" onClick={() => setKonum('')} aria-label="Mahalle filtresini kaldır">×</button>
-              </span>
-            )}
-            <span className="product-count">{Array.isArray(urunler) ? urunler.length : 0} ürün</span>
-          </div>
+          </label>
+          <button type="button" className="fav-btn filter-clear-btn" onClick={() => {
+            setKonum('');
+            setFiltre({ marka: '', minFiyat: '', maxFiyat: '', minPuan: '' });
+            setSiralama('');
+          }}>Temizle</button>
+        </aside>
+
+        <div className="shop-content">
+          {!kategori && !arama && Array.isArray(oneCikan) && oneCikan.length > 0 && (
+            <section className="section-block section-block-inline">
+              <h2 className="section-title">Flaş Ürünler</h2>
+              <div className="product-grid compact">
+                {oneCikan.slice(0, 4).map((u) => (
+                  <ProductCard key={u._id} u={u} {...cardProps} favoriMi={favoriIds.has(u._id)} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {Array.isArray(sonGorulen) && sonGorulen.length > 0 && !arama && (
+            <section className="section-block section-block-inline">
+              <h2 className="section-title">Son Baktıklarınız</h2>
+              <div className="product-grid compact">
+                {sonGorulen.slice(0, 4).map((u) => (
+                  <ProductCard key={u._id} u={u} {...cardProps} favoriMi={favoriIds.has(u._id)} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <p className="shop-result-count">{Array.isArray(urunler) ? urunler.length : 0} ürün listeleniyor</p>
+
+          {yukleniyor ? (
+            <div className="loading">Ürünler yükleniyor...</div>
+          ) : !Array.isArray(urunler) || urunler.length === 0 ? (
+            <EmptyState
+              title="Ürün bulunamadı"
+              description="Filtreleri değiştirerek tekrar deneyin."
+            />
+          ) : (
+            <div className="product-grid">
+              {urunler.map((u) => (
+                <ProductCard key={u._id} u={u} {...cardProps} favoriMi={favoriIds.has(u._id)} />
+              ))}
+            </div>
+          )}
         </div>
-      </section>
-
-      {!kategori && !arama && Array.isArray(oneCikan) && oneCikan.length > 0 && (
-        <section className="section-block">
-          <h2 className="section-title">Flaş Ürünler</h2>
-          <div className="product-grid compact">
-            {oneCikan.slice(0, 4).map((u) => (
-              <ProductCard key={u._id} u={u} {...cardProps} favoriMi={favoriIds.has(u._id)} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {Array.isArray(sonGorulen) && sonGorulen.length > 0 && !arama && (
-        <section className="section-block">
-          <h2 className="section-title">Son Baktıklarınız</h2>
-          <div className="product-grid compact">
-            {sonGorulen.slice(0, 4).map((u) => (
-              <ProductCard key={u._id} u={u} {...cardProps} favoriMi={favoriIds.has(u._id)} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      <main className="main">
-        {yukleniyor ? (
-          <div className="loading">Ürünler yükleniyor...</div>
-        ) : !Array.isArray(urunler) || urunler.length === 0 ? (
-          <EmptyState
-            title="Ürün bulunamadı"
-            description="Filtreleri değiştirerek tekrar deneyin."
-          />
-        ) : (
-          <div className="product-grid">
-            {urunler.map((u) => (
-              <ProductCard key={u._id} u={u} {...cardProps} favoriMi={favoriIds.has(u._id)} />
-            ))}
-          </div>
-        )}
-      </main>
+      </div>
     </Layout>
   );
 }

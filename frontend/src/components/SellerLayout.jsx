@@ -15,7 +15,7 @@ export default function SellerLayout({ children }) {
     <div className="seller-shell">
       <header className="seller-header">
         <div className="seller-header-inner">
-          <Link to="/satici/panel" className="seller-logo">
+          <Link to="/satici/panel?tab=ilan" className="seller-logo">
             <IconStore size={22} />
             <span>
               demo
@@ -23,10 +23,9 @@ export default function SellerLayout({ children }) {
             </span>
           </Link>
           <nav className="seller-nav">
-            <Link to="/satici/panel" className="seller-nav-link">Ürünlerim</Link>
-            <Link to="/satici/panel" className="seller-nav-link">Siparişler</Link>
-            <Link to="/satici/panel" className="seller-nav-link">İlan Ver</Link>
-            <Link to="/" className="seller-nav-link muted">Alışveriş Sitesi</Link>
+            <Link to="/satici/panel?tab=envanter" className="seller-nav-link">Ürünlerim</Link>
+            <Link to="/satici/panel?tab=siparisler" className="seller-nav-link">Siparişler</Link>
+            <Link to="/satici/panel?tab=ilan" className="seller-nav-link seller-nav-highlight">İlan Ver</Link>
           </nav>
           <div className="seller-header-actions">
             {kullanici ? (
@@ -40,9 +39,6 @@ export default function SellerLayout({ children }) {
           </div>
         </div>
       </header>
-      <nav className="back-home-bar seller-back-home" aria-label="Gezinme">
-        <Link to="/" className="back-home-link">← Ana sayfaya dön</Link>
-      </nav>
       {children}
       <footer className="seller-footer">
         <p>demo Satıcı — Isparta&apos;da ürünlerinizi satışa koyun</p>

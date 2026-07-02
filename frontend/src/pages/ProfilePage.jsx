@@ -145,8 +145,6 @@ export default function ProfilePage({ arama, setArama, kategori, setKategori, ko
         <div className="profile-links">
           <Link to="/favoriler">Favorilerim</Link>
           <Link to="/siparisler">Siparişlerim</Link>
-          <Link to="/satici/basvuru">Satıcı Ol</Link>
-          {(kullanici.rol === 'satici' || kullanici.rol === 'admin') && <Link to="/satici/panel">Satıcı Paneli</Link>}
           {kullanici.rol === 'admin' && <Link to="/admin/yorumlar">Yorum Onay</Link>}
         </div>
       </main>

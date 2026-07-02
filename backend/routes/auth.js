@@ -25,15 +25,15 @@ router.post('/satici-kayit', async (req, res) => {
         if (await User.findOne({ email: email.toLowerCase() })) {
           return res.status(409).json({ mesaj: 'Bu e-posta zaten kayıtlı.', kod: 'EPOSTA_KAYITLI' });
         }
-        await User.create({ ad, soyad, email, sifre, telefon, rol: 'kullanici' });
-        return res.status(201).json({ mesaj: 'Kayıt tamamlandı. Giriş yapabilirsiniz.' });
+        const user = await User.create({ ad, soyad, email, sifre, telefon, rol: 'kullanici' });
+        return kullaniciDon(res, user, tokenOlustur(user._id));
       } catch (err) {
         console.error('[Demo] Mongo satici-kayit hatasi, bellek modu:', err.message);
       }
     }
 
-    await memoryStore.kullaniciKayit({ ad, soyad, email, sifre, telefon });
-    res.status(201).json({ mesaj: 'Kayıt tamamlandı. Giriş yapabilirsiniz.' });
+    const user = await memoryStore.kullaniciKayit({ ad, soyad, email, sifre, telefon });
+    kullaniciDon(res, user, tokenOlustur(user._id));
   } catch (err) {
     res.status(err.status || 500).json({
       mesaj: err.message || 'Kayıt oluşturulamadı.',
