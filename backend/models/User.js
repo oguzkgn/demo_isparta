@@ -33,6 +33,7 @@ const userSchema = new mongoose.Schema({
   emailDogrulandi: { type: Boolean, default: false },
   emailDogrulamaKodu: String,
   emailDogrulamaSon: Date,
+  saticiKayit: { type: Boolean, default: false },
   adresler: [adresSchema],
   sepet: [sepetItemSchema],
   favoriler: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],

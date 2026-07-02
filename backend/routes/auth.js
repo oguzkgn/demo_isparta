@@ -102,14 +102,14 @@ router.post('/satici-kayit', async (req, res) => {
         if (await User.findOne({ email: email.toLowerCase() })) {
           return res.status(409).json({ mesaj: 'Bu e-posta zaten kayıtlı.', kod: 'EPOSTA_KAYITLI' });
         }
-        const user = await User.create({ ad, soyad, email, sifre, telefon, rol: 'kullanici', emailDogrulandi: false });
+        const user = await User.create({ ad, soyad, email, sifre, telefon, rol: 'kullanici', emailDogrulandi: false, saticiKayit: true });
         return kayitSonrasiDogrulama(res, { mongoId: user._id, email: user.email });
       } catch (err) {
         console.error('[Demo] Mongo satici-kayit hatasi, bellek modu:', err.message);
       }
     }
 
-    const user = await memoryStore.kullaniciKayit({ ad, soyad, email, sifre, telefon });
+    const user = await memoryStore.kullaniciKayit({ ad, soyad, email, sifre, telefon, saticiKayit: true });
     return kayitSonrasiDogrulama(res, { email: user.email });
   } catch (err) {
     res.status(err.status || 500).json({
