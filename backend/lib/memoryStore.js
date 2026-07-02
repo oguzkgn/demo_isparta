@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { ORNEK_URUNLER } = require('../data/constants');
+const { konumEslestir } = require('./konumHelper');
 
 let initDone = false;
 let userCounter = 1;
@@ -26,6 +27,9 @@ function zenginlestir(u, idx) {
 
 const products = ORNEK_URUNLER.map((u, i) => zenginlestir(u, i));
 const users = new Map();
+const vendors = new Map();
+let vendorCounter = 1;
+let vendorProductCounter = 1;
 
 async function ensureInit() {
   if (initDone) return;
@@ -67,7 +71,7 @@ function urunleriFiltrele(query = {}) {
 
   if (query.kategori) list = list.filter((u) => u.kategori === query.kategori);
   if (query.altKategori) list = list.filter((u) => u.altKategori === query.altKategori);
-  if (query.konum) list = list.filter((u) => u.konum === query.konum);
+  if (query.konum) list = list.filter((u) => konumEslestir(u.konum, query.konum));
   if (query.marka) list = list.filter((u) => u.marka === query.marka);
   if (query.oneCikan === 'true') list = list.filter((u) => u.oneCikan);
   if (query.minFiyat) list = list.filter((u) => u.fiyat >= Number(query.minFiyat));
@@ -87,6 +91,7 @@ function urunleriFiltrele(query = {}) {
   if (query.siralama === 'fiyatArtan') list.sort((a, b) => a.fiyat - b.fiyat);
   else if (query.siralama === 'fiyatAzalan') list.sort((a, b) => b.fiyat - a.fiyat);
   else if (query.siralama === 'puan') list.sort((a, b) => b.puan - a.puan);
+  else if (query.siralama === 'puanArtan') list.sort((a, b) => a.puan - b.puan);
   else list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   return list;
@@ -172,7 +177,7 @@ function sepetGetir(userId) {
   const user = users.get(String(userId));
   if (!user) return [];
   return user.sepet.map((item) => ({
-    urun: urunBul(item.urun) || { _id: item.urun, ad: 'Ürün', fiyat: 0, resim: '🛍️' },
+    urun: urunBul(item.urun) || { _id: item.urun, ad: 'Ürün', fiyat: 0, resim: '' },
     adet: item.adet,
     beden: item.beden,
     renk: item.renk
@@ -261,6 +266,94 @@ function aramaYap(q) {
   return { urunler, oneriler };
 }
 
+function saticiBul(userId) {
+  return [...vendors.values()].find((v) => v.kullaniciId === String(userId)) || null;
+}
+
+async function saticiBasvuru(userId, data) {
+  await ensureInit();
+  const user = users.get(String(userId));
+  if (!user) {
+    const err = new Error('Oturum geçersiz.');
+    err.status = 401;
+    throw err;
+  }
+  if (['satici', 'admin'].includes(user.rol)) {
+    const err = new Error('Zaten satıcı hesabınız var.');
+    err.status = 409;
+    throw err;
+  }
+  const mevcut = saticiBul(userId);
+  if (mevcut) {
+    const err = new Error('Başvurunuz zaten mevcut.');
+    err.status = 409;
+    throw err;
+  }
+
+  const vendorId = `mem-vendor-${vendorCounter++}`;
+  const vendor = {
+    _id: vendorId,
+    kullaniciId: String(userId),
+    magazaAdi: data.magazaAdi,
+    vergiNo: data.vergiNo || '',
+    telefon: data.telefon || user.telefon || '',
+    email: data.email || user.email,
+    adres: data.adres || '',
+    aciklama: data.aciklama || '',
+    durum: 'onayli',
+    createdAt: new Date()
+  };
+  vendors.set(vendorId, vendor);
+  user.rol = 'satici';
+  user.saticiId = vendorId;
+  return { vendor, kullanici: sanitizeUser(user) };
+}
+
+function saticiUrunleri(userId) {
+  const vendor = saticiBul(userId);
+  if (!vendor) return [];
+  return products.filter((p) => p.satici === vendor._id);
+}
+
+function saticiUrunEkle(userId, data) {
+  const vendor = saticiBul(userId);
+  if (!vendor || vendor.durum !== 'onayli') return null;
+  const idx = products.length + 1;
+  const urun = zenginlestir({
+    ...data,
+    saticiAd: vendor.magazaAdi,
+    puan: 4.5,
+    yorumSayisi: 0,
+    stok: data.stok ?? 10
+  }, idx);
+  urun._id = `mem-vp-${vendorProductCounter++}`;
+  urun.satici = vendor._id;
+  products.push(urun);
+  return urun;
+}
+
+function saticiUrunGuncelle(userId, urunId, data) {
+  const vendor = saticiBul(userId);
+  if (!vendor) return null;
+  const urun = products.find((p) => p._id === urunId && p.satici === vendor._id);
+  if (!urun) return null;
+  Object.assign(urun, data);
+  return urun;
+}
+
+function saticiUrunSil(userId, urunId) {
+  const vendor = saticiBul(userId);
+  if (!vendor) return false;
+  const idx = products.findIndex((p) => p._id === urunId && p.satici === vendor._id);
+  if (idx === -1) return false;
+  products.splice(idx, 1);
+  return true;
+}
+
+function saticiSiparisleri(userId) {
+  return [];
+}
+
 module.exports = {
   ensureInit,
   isMemoryUser,
@@ -280,5 +373,12 @@ module.exports = {
   favoriSil,
   sonGorulenGetir,
   sonGorulenEkle,
-  aramaYap
+  aramaYap,
+  saticiBul,
+  saticiBasvuru,
+  saticiUrunleri,
+  saticiUrunEkle,
+  saticiUrunGuncelle,
+  saticiUrunSil,
+  saticiSiparisleri
 };

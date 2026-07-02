@@ -41,7 +41,7 @@ export default function SellerLoginPage() {
               {yukleniyor ? 'Giriş yapılıyor...' : 'Satıcı Paneline Gir'}
             </button>
             <p className="auth-alt">
-              Henüz satıcı değil misiniz? <Link to="/satici/basvuru">Başvuru yapın</Link>
+              Henüz satıcı değil misiniz? <Link to="/satici/basvuru">Kayıt ol ve başvuru yapın</Link>
             </p>
             <p className="auth-alt">
               Alışveriş yapmak mı istiyorsunuz? <Link to="/giris">Müşteri girişi</Link>

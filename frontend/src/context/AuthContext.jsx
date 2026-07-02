@@ -65,8 +65,24 @@ export function AuthProvider({ children }) {
     return u;
   };
 
+  const profilYenile = async () => {
+    const token = localStorage.getItem('demo-token');
+    if (!token) {
+      setKullanici(null);
+      return null;
+    }
+    const profil = await fetchProfile();
+    setKullanici(profil);
+    return profil;
+  };
+
+  const kullaniciGuncelle = (u) => setKullanici(u);
+
   return (
-    <AuthContext.Provider value={{ kullanici, yukleniyor, girisYap, kayitOl, googleGiris, appleGiris, cikisYap, hesabiSil, oturumuYukle }}>
+    <AuthContext.Provider value={{
+      kullanici, yukleniyor, girisYap, kayitOl, googleGiris, appleGiris,
+      cikisYap, hesabiSil, oturumuYukle, profilYenile, kullaniciGuncelle
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -41,7 +41,7 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink-soft);
   margin-top: 0.15rem;
 }
 
@@ -115,7 +115,7 @@
   color: var(--ink-soft);
   text-decoration: none;
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 600;
   padding: 0.45rem 0.65rem;
   border-radius: 8px;
   transition: background 0.2s, color 0.2s;
@@ -339,11 +339,33 @@
   background: var(--surface);
   color: var(--ink);
   font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: var(--lavender-soft);
+  color: var(--primary-dark);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.filter-chip button {
+  background: transparent;
+  color: var(--primary);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.15rem;
 }
 
 .product-count {
-  color: var(--muted);
+  color: var(--ink-soft);
   font-size: 0.88rem;
+  font-weight: 600;
   margin-left: auto;
 }
 
@@ -534,10 +556,10 @@
 }
 
 .seller-tag {
-  font-weight: 500;
+  font-weight: 600;
   text-transform: none;
   letter-spacing: 0;
-  color: var(--muted);
+  color: var(--ink-soft);
   font-size: 0.75rem;
 }
 
@@ -566,15 +588,15 @@
 }
 
 .product-location {
-  color: var(--muted);
-}
-
-.product-rating {
   color: var(--ink-soft);
 }
 
+.product-rating {
+  color: var(--ink);
+}
+
 .product-rating .rating-count {
-  color: var(--muted);
+  color: var(--ink-soft);
 }
 
 .product-prices {
@@ -998,9 +1020,27 @@
 .order-item {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 0.35rem 0;
   font-size: 0.9rem;
-  color: var(--text-muted);
+  color: var(--ink);
+}
+
+.order-item-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.order-item-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
 }
 
 .order-footer {
@@ -1246,7 +1286,7 @@
 .kart-form label { display: block; margin-bottom: 0.75rem; font-size: 0.9rem; }
 .kart-form input, .kart-form select { width: 100%; margin-top: 0.25rem; padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 8px; }
 
-/* ── Parallax arka plan: lavanta sol üst, gül sağ alt ── */
+/* ── Parallax arka plan: lavanta ortada ── */
 .animated-bg {
   position: fixed;
   inset: 0;
@@ -1259,7 +1299,7 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 70% 55% at 50% 45%, rgba(255, 255, 255, 0.55) 0%, rgba(249, 247, 251, 0.82) 50%, rgba(249, 247, 251, 0.92) 100%);
+    radial-gradient(ellipse 85% 70% at 50% 50%, rgba(255, 255, 255, 0.42) 0%, rgba(249, 247, 251, 0.78) 45%, rgba(249, 247, 251, 0.94) 100%);
   z-index: 2;
 }
 
@@ -1267,8 +1307,8 @@
   position: fixed;
   z-index: 1;
   overflow: hidden;
-  border-radius: 20px;
-  box-shadow: 0 32px 80px rgba(18, 10, 24, 0.14);
+  border-radius: 24px;
+  box-shadow: 0 40px 100px rgba(18, 10, 24, 0.16);
   will-change: transform;
   transition: transform 0.12s linear;
 }
@@ -1284,28 +1324,25 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(18, 10, 24, 0.06) 100%);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(18, 10, 24, 0.08) 100%);
   pointer-events: none;
 }
 
-.parallax-lavender {
-  top: 2%;
-  left: 2%;
-  width: min(46vw, 560px);
-  aspect-ratio: 5 / 3.5;
-  transform-origin: top left;
-  opacity: 0.72;
-  border: 1px solid rgba(107, 91, 138, 0.18);
+.parallax-lavender-full {
+  top: 50%;
+  left: 50%;
+  width: 100vw;
+  height: 100vh;
+  transform-origin: center center;
+  opacity: 0.46;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
 }
 
-.parallax-rose {
-  bottom: 2%;
-  right: 2%;
-  width: min(46vw, 560px);
-  aspect-ratio: 5 / 3.5;
-  transform-origin: bottom right;
-  opacity: 0.72;
-  border: 1px solid rgba(168, 67, 98, 0.16);
+.hero-banner-single {
+  grid-template-columns: 1fr;
+  min-height: auto;
 }
 
 /* ── Canlı tipografi: ana sayfa ── */
@@ -1323,9 +1360,9 @@
 }
 
 .hero-lead {
-  color: var(--ink-soft);
+  color: var(--ink);
   font-size: 1.08rem;
-  font-weight: 500;
+  font-weight: 600;
   line-height: var(--leading-relaxed);
   max-width: 460px;
 }
@@ -1375,9 +1412,9 @@
 }
 
 .auth-sub-vivid {
-  color: var(--ink-soft) !important;
+  color: var(--ink) !important;
   font-size: 1rem !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   line-height: var(--leading-relaxed) !important;
   margin-bottom: var(--space-lg) !important;
 }
@@ -1394,7 +1431,7 @@
   display: block;
   font-size: 0.78rem;
   font-weight: 500;
-  color: var(--muted);
+  color: var(--ink-soft);
   margin-top: 0.2rem;
 }
 
@@ -1449,18 +1486,8 @@
   .hero-visual::after {
     background: linear-gradient(180deg, transparent 35%, var(--surface) 100%);
   }
-  .parallax-lavender,
-  .parallax-rose {
-    width: min(72vw, 340px);
-    opacity: 0.5;
-  }
-  .parallax-lavender {
-    top: 0;
-    left: 0;
-  }
-  .parallax-rose {
-    bottom: 0;
-    right: 0;
+  .parallax-lavender-full {
+    opacity: 0.38;
   }
   .header-link.icon-link span {
     display: none;
@@ -1682,6 +1709,36 @@
 }
 
 .seller-auth-form h1 { color: var(--seller-green); }
+
+.seller-auth-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.seller-auth-tabs button {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  border: 2px solid rgba(27, 67, 50, 0.15);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--seller-green);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.seller-auth-tabs button.active {
+  background: var(--seller-green);
+  color: #fff;
+  border-color: var(--seller-green);
+}
+
+.link-btn {
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+  color: #fff !important;
+}
 
 .seller-submit {
   background: linear-gradient(135deg, var(--seller-green), #40916c) !important;

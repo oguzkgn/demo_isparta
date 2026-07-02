@@ -6,6 +6,7 @@ import {
   fetchAddresses, validateCoupon, createOrder, fetchCoupons, processPayment
 } from '../api/client';
 import { formatPrice } from '../utils/format';
+import { productImageSrc } from '../constants/images';
 import Layout from '../components/Layout';
 
 export default function CheckoutPage({ arama, setArama, kategori, setKategori, konum, setKonum }) {
@@ -137,7 +138,10 @@ export default function CheckoutPage({ arama, setArama, kategori, setKategori, k
             <h3>Sipariş Özeti</h3>
             {sepet.map((x) => (
               <div key={x._id} className="summary-item">
-                <span>{x.resim} {x.ad} ×{x.adet}</span>
+                <span className="order-item-label">
+                  <img src={productImageSrc(x)} alt="" className="order-item-thumb" />
+                  {x.ad} ×{x.adet}
+                </span>
                 <span>{formatPrice(x.fiyat * x.adet)}</span>
               </div>
             ))}

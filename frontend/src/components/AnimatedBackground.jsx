@@ -1,27 +1,22 @@
 import { useEffect, useState } from 'react';
 import { BG_IMAGES } from '../constants/images';
 
-const SCROLL_RANGE = 900;
-const TOP_BASE = 1.06;
-const TOP_MIN = 0.82;
-const BOTTOM_BASE = 0.88;
-const BOTTOM_MAX = 1.14;
+const SCROLL_RANGE = 1200;
+const SCALE_MAX = 1;
+const SCALE_MIN = 0.52;
 
-function scrollToScales(scrollY) {
+function scrollToScale(scrollY) {
   const progress = Math.min(Math.max(scrollY / SCROLL_RANGE, 0), 1);
-  return {
-    top: TOP_BASE - progress * (TOP_BASE - TOP_MIN),
-    bottom: BOTTOM_BASE + progress * (BOTTOM_MAX - BOTTOM_BASE)
-  };
+  return SCALE_MAX - progress * (SCALE_MAX - SCALE_MIN);
 }
 
 export default function AnimatedBackground() {
-  const [scales, setScales] = useState(() => scrollToScales(0));
+  const [scale, setScale] = useState(() => scrollToScale(0));
 
   useEffect(() => {
     let frame = null;
     const update = () => {
-      setScales(scrollToScales(window.scrollY));
+      setScale(scrollToScale(window.scrollY));
       frame = null;
     };
     const onScroll = () => {
@@ -39,16 +34,10 @@ export default function AnimatedBackground() {
     <div className="animated-bg" aria-hidden="true">
       <div className="bg-overlay" />
       <div
-        className="parallax-photo parallax-lavender"
-        style={{ transform: `scale(${scales.top.toFixed(4)})` }}
+        className="parallax-photo parallax-lavender-full"
+        style={{ transform: `translate(-50%, -50%) scale(${scale.toFixed(4)})` }}
       >
         <img src={BG_IMAGES.lavender} alt="" loading="eager" decoding="async" />
-      </div>
-      <div
-        className="parallax-photo parallax-rose"
-        style={{ transform: `scale(${scales.bottom.toFixed(4)})` }}
-      >
-        <img src={BG_IMAGES.rose} alt="" loading="eager" decoding="async" />
       </div>
     </div>
   );

@@ -55,13 +55,17 @@ export default function SellerPanelPage() {
           <>
             <form className="auth-form wide seller-product-form" onSubmit={async (e) => {
               e.preventDefault();
-              const u = await createVendorProduct({
-                ...yeniUrun,
-                fiyat: Number(yeniUrun.fiyat),
-                stok: Number(yeniUrun.stok)
-              });
-              setUrunler([u, ...urunler]);
-              setYeniUrun({ ad: '', fiyat: '', stok: 10, kategori: 'lavanta', konum: 'Çarşı / Merkez', marka: '', aciklama: '', resim: '' });
+              try {
+                const u = await createVendorProduct({
+                  ...yeniUrun,
+                  fiyat: Number(yeniUrun.fiyat),
+                  stok: Number(yeniUrun.stok)
+                });
+                setUrunler([u, ...urunler]);
+                setYeniUrun({ ad: '', fiyat: '', stok: 10, kategori: 'lavanta', konum: 'Çarşı / Merkez', marka: '', aciklama: '', resim: '' });
+              } catch {
+                alert('Ürün eklenemedi. Lütfen tekrar deneyin.');
+              }
             }}>
               <h3>Yeni Ürün Satışa Koy</h3>
               <p className="auth-sub">Ürün bilgilerini doldurup mağazanıza ekleyin</p>

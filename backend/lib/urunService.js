@@ -1,6 +1,23 @@
 const Product = require('../models/Product');
 const { dbBagli } = require('./dbHelper');
 const memoryStore = require('./memoryStore');
+const { konumEslestir } = require('./konumHelper');
+
+function siralamaUygula(list, siralama) {
+  const sorted = [...list];
+  if (siralama === 'fiyatArtan') sorted.sort((a, b) => a.fiyat - b.fiyat);
+  else if (siralama === 'fiyatAzalan') sorted.sort((a, b) => b.fiyat - a.fiyat);
+  else if (siralama === 'puan') sorted.sort((a, b) => b.puan - a.puan);
+  else if (siralama === 'puanArtan') sorted.sort((a, b) => a.puan - b.puan);
+  else sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  return sorted;
+}
+
+function postFiltre(list, query) {
+  let result = list;
+  if (query.konum) result = result.filter((u) => konumEslestir(u.konum, query.konum));
+  return siralamaUygula(result, query.siralama);
+}
 
 async function mongoVeyaBellek(mongoFn, bellekFn) {
   if (dbBagli()) {
@@ -20,7 +37,6 @@ async function urunleriGetir(query) {
       const filter = {};
       if (query.kategori) filter.kategori = query.kategori;
       if (query.altKategori) filter.altKategori = query.altKategori;
-      if (query.konum) filter.konum = query.konum;
       if (query.marka) filter.marka = query.marka;
       if (query.oneCikan === 'true') filter.oneCikan = true;
       if (query.minFiyat) filter.fiyat = { ...filter.fiyat, $gte: Number(query.minFiyat) };
@@ -36,10 +52,8 @@ async function urunleriGetir(query) {
         ];
       }
       let sort = { createdAt: -1 };
-      if (query.siralama === 'fiyatArtan') sort = { fiyat: 1 };
-      if (query.siralama === 'fiyatAzalan') sort = { fiyat: -1 };
-      if (query.siralama === 'puan') sort = { puan: -1 };
-      return Product.find(filter).sort(sort).lean();
+      const list = await Product.find(filter).sort(sort).lean();
+      return postFiltre(list, query);
     },
     () => memoryStore.urunleriFiltrele(query)
   );

@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { fetchOrder, cancelOrder, createReturn } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice, DURUM_ETIKET, konumMetni } from '../utils/format';
+import { productImageSrc } from '../constants/images';
 import Layout from '../components/Layout';
 import EmptyState from '../components/EmptyState';
 
@@ -60,7 +61,10 @@ export default function OrderDetailPage({ arama, setArama, kategori, setKategori
             <div className="order-items-detail">
               {siparis.urunler.map((u, i) => (
                 <div key={i} className="order-item">
-                  <span>{u.resim} {u.ad}</span>
+                  <span className="order-item-label">
+                    <img src={productImageSrc(u)} alt="" className="order-item-thumb" />
+                    {u.ad}
+                  </span>
                   <span>{u.adet} × {formatPrice(u.fiyat)}</span>
                 </div>
               ))}

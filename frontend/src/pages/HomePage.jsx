@@ -4,7 +4,9 @@ import { fetchProducts, fetchCategories, fetchLocations, fetchRecent, fetchBrand
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { asArray } from '../utils/safe';
-import { BG_IMAGES } from '../constants/images';
+import { ISPARTA_KONUMLAR } from '../constants/config';
+import { urunleriFiltrele } from '../utils/products';
+import { konumMetni } from '../utils/format';
 import Layout from '../components/Layout';
 import ProductCard from '../components/ProductCard';
 import EmptyState from '../components/EmptyState';
@@ -58,10 +60,12 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
     Promise.all([fetchCategories(), fetchLocations(), fetchBrands()])
       .then(([k, l, m]) => {
         setKategoriler(asArray(k));
-        setKonumlar(asArray(l));
+        setKonumlar(asArray(l).length ? asArray(l) : ISPARTA_KONUMLAR);
         setMarkalar(asArray(m));
       })
-      .catch(() => {});
+      .catch(() => {
+        setKonumlar(ISPARTA_KONUMLAR);
+      });
   }, []);
 
   useEffect(() => {
@@ -88,7 +92,20 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
     if (filtre.maxFiyat) params.maxFiyat = filtre.maxFiyat;
     if (filtre.minPuan) params.minPuan = filtre.minPuan;
     fetchProducts(params)
-      .then((data) => setUrunler(asArray(data)))
+      .then((data) => {
+        const ham = asArray(data);
+        const islenmis = urunleriFiltrele(ham, {
+          kategori,
+          konum,
+          marka: filtre.marka,
+          minFiyat: filtre.minFiyat,
+          maxFiyat: filtre.maxFiyat,
+          minPuan: filtre.minPuan,
+          ara: arama.trim(),
+          siralama
+        });
+        setUrunler(islenmis);
+      })
       .catch(() => setUrunler([]))
       .finally(() => setYukleniyor(false));
   }, [kategori, konum, arama, siralama, filtre]);
@@ -108,19 +125,16 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
       setKonum={setKonum}
     >
       <section className="hero">
-        <div className="hero-banner">
+        <div className="hero-banner hero-banner-single">
           <div className="hero-content hero-vivid">
             <p className="hero-eyebrow">Isparta · Yerel Ticaret</p>
             <h1>Isparta&apos;nın yerel alışveriş platformu</h1>
-            <p className="hero-lead">Lavanta ve gül vadisinden kapınıza teslimat. 300 TL üzeri siparişlerde ücretsiz kargo.</p>
+            <p className="hero-lead">Lavanta vadisinden kapınıza teslimat. 300 TL üzeri siparişlerde ücretsiz kargo.</p>
             <div className="hero-coupons">
               <span className="coupon-chip">ISPARTA10</span>
               <span className="coupon-chip">LAVANTA50</span>
               <span className="coupon-chip">GUL20</span>
             </div>
-          </div>
-          <div className="hero-visual">
-            <img src={BG_IMAGES.hero} alt="Isparta gül bahçesi" loading="eager" />
           </div>
         </div>
       </section>
@@ -165,6 +179,14 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
       <main className="main with-sidebar">
         <aside className="filter-sidebar">
           <h3>Filtrele</h3>
+          <label>Mahalle
+            <select value={konum} onChange={(e) => setKonum(e.target.value)}>
+              <option value="">Tüm Mahalleler</option>
+              {Array.isArray(konumlar) && konumlar.map((k) => (
+                <option key={k} value={k}>{konumMetni(k)}</option>
+              ))}
+            </select>
+          </label>
           <label>Marka
             <select value={filtre.marka} onChange={(e) => setFiltre({ ...filtre, marka: e.target.value })}>
               <option value="">Tümü</option>
@@ -179,16 +201,27 @@ export default function HomePage({ arama, setArama, kategori, setKategori, konum
               {[4, 4.5, 5].map((p) => <option key={p} value={p}>{p}+ puan</option>)}
             </select>
           </label>
-          <button type="button" className="fav-btn" onClick={() => setFiltre({ marka: '', minFiyat: '', maxFiyat: '', minPuan: '' })}>Temizle</button>
+          <button type="button" className="fav-btn" onClick={() => {
+            setKonum('');
+            setFiltre({ marka: '', minFiyat: '', maxFiyat: '', minPuan: '' });
+            setSiralama('');
+          }}>Temizle</button>
         </aside>
         <div className="main-content">
           <div className="toolbar">
-            <select value={siralama} onChange={(e) => setSiralama(e.target.value)}>
+            <select value={siralama} onChange={(e) => setSiralama(e.target.value)} aria-label="Sıralama">
               <option value="">Sıralama</option>
               <option value="fiyatArtan">Fiyat: Artan</option>
               <option value="fiyatAzalan">Fiyat: Azalan</option>
-              <option value="puan">En Yüksek Puan</option>
+              <option value="puan">Puan: Yüksekten düşüğe</option>
+              <option value="puanArtan">Puan: Düşükten yükseğe</option>
             </select>
+            {konum && (
+              <span className="filter-chip">
+                {konumMetni(konum)}
+                <button type="button" onClick={() => setKonum('')} aria-label="Mahalle filtresini kaldır">×</button>
+              </span>
+            )}
             <span className="product-count">{Array.isArray(urunler) ? urunler.length : 0} ürün</span>
           </div>
 

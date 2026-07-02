@@ -2,19 +2,31 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { searchProducts } from '../api/client';
+import { searchProducts, fetchLocations } from '../api/client';
 import { asArray } from '../utils/safe';
 import { konumMetni } from '../utils/format';
+import { ISPARTA_KONUMLAR } from '../constants/config';
 import { IconCart, IconHeart, IconPackage, IconSearch, IconStore, IconTag, IconUser } from './icons/Icons';
 import CartPanel from './CartPanel';
 
-export default function Layout({ children, kategoriler, kategori, setKategori, arama, setArama, onAra, konumlar, konum, setKonum }) {
+export default function Layout({ children, kategoriler, kategori, setKategori, arama, setArama, onAra, konumlar: konumlarProp, konum, setKonum }) {
   const { kullanici, cikisYap } = useAuth();
   const { sepetAdet, setSepetAcik } = useCart();
   const navigate = useNavigate();
   const [oneriler, setOneriler] = useState([]);
   const [oneriAcik, setOneriAcik] = useState(false);
+  const [konumlar, setKonumlar] = useState(() => asArray(konumlarProp).length ? asArray(konumlarProp) : ISPARTA_KONUMLAR);
   const searchRef = useRef(null);
+
+  useEffect(() => {
+    if (asArray(konumlarProp).length) {
+      setKonumlar(asArray(konumlarProp));
+      return;
+    }
+    fetchLocations()
+      .then((list) => setKonumlar(asArray(list).length ? asArray(list) : ISPARTA_KONUMLAR))
+      .catch(() => setKonumlar(ISPARTA_KONUMLAR));
+  }, [konumlarProp]);
 
   useEffect(() => {
     if (!arama || arama.length < 2) { setOneriler([]); return; }
@@ -63,7 +75,16 @@ export default function Layout({ children, kategoriler, kategori, setKategori, a
             )}
           </div>
           {Array.isArray(konumlar) && konumlar.length > 0 && (
-            <select className="location-select" value={konum} onChange={(e) => setKonum(e.target.value)}>
+            <select
+              className="location-select"
+              value={konum}
+              onChange={(e) => {
+                setKonum(e.target.value);
+                onAra?.();
+                if (window.location.pathname !== '/') navigate('/');
+              }}
+              aria-label="Mahalle filtresi"
+            >
               <option value="">Tüm Mahalleler</option>
               {konumlar.map((k) => <option key={k} value={k}>{konumMetni(k)}</option>)}
             </select>

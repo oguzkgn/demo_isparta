@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { formatPrice, DURUM_ETIKET } from '../utils/format';
+import { productImageSrc } from '../constants/images';
 import EmptyState from '../components/EmptyState';
 import Layout from '../components/Layout';
 
@@ -23,7 +24,10 @@ export default function OrdersPage({ arama, setArama, kategori, setKategori, kon
                 <div className="order-items">
                   {Array.isArray(s.urunler) && s.urunler.slice(0, 2).map((u, i) => (
                     <div key={i} className="order-item">
-                      <span>{u.resim} {u.ad}</span>
+                      <span className="order-item-label">
+                        <img src={productImageSrc(u)} alt="" className="order-item-thumb" />
+                        {u.ad}
+                      </span>
                       <span>{u.adet} adet</span>
                     </div>
                   ))}
