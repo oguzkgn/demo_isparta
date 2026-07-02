@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { dbBagli } = require('../lib/dbHelper');
+const memoryStore = require('../lib/memoryStore');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'demo-isparta-gizli-anahtar';
 
@@ -14,10 +16,25 @@ async function authZorunlu(req, res, next) {
   }
   try {
     const decoded = jwt.verify(header.slice(7), JWT_SECRET);
-    const user = await User.findById(decoded.id).select('-sifre');
-    if (!user) return res.status(401).json({ mesaj: 'Oturum geçersiz.' });
-    req.user = user;
-    next();
+
+    if (dbBagli() && !memoryStore.isMemoryUser(decoded.id)) {
+      const user = await User.findById(decoded.id).select('-sifre');
+      if (user) {
+        req.user = user;
+        req.memoryMode = false;
+        return next();
+      }
+    }
+
+    await memoryStore.ensureInit();
+    const memUser = memoryStore.kullaniciGetir(decoded.id);
+    if (memUser) {
+      req.user = memUser;
+      req.memoryMode = true;
+      return next();
+    }
+
+    return res.status(401).json({ mesaj: 'Oturum geçersiz.' });
   } catch {
     res.status(401).json({ mesaj: 'Oturum süresi dolmuş.' });
   }

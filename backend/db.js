@@ -51,7 +51,7 @@ async function seedVerileri() {
 async function veritabaniBaglan() {
   const uri = process.env.MONGO_URI;
   if (!uri) {
-    console.error('[Demo] MONGO_URI tanımlı değil — Render Environment sekmesine ekleyin.');
+    console.warn('[Demo] MONGO_URI tanımlı değil — bellek içi yedek mod aktif.');
     return;
   }
   if (baglaniyor || mongoose.connection.readyState === 1) return;

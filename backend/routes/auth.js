@@ -2,6 +2,8 @@ const express = require('express');
 const User = require('../models/User');
 const Order = require('../models/Order');
 const { authZorunlu, tokenOlustur } = require('../middleware/auth');
+const { dbBagli } = require('../lib/dbHelper');
+const memoryStore = require('../lib/memoryStore');
 
 const router = express.Router();
 
@@ -16,26 +18,39 @@ router.post('/kayit', async (req, res) => {
       return res.status(400).json({ mesaj: 'Ad, soyad, e-posta ve şifre zorunludur.' });
     }
     if (sifre.length < 6) return res.status(400).json({ mesaj: 'Şifre en az 6 karakter olmalı.' });
-    if (await User.findOne({ email: email.toLowerCase() })) {
-      return res.status(409).json({ mesaj: 'Bu e-posta zaten kayıtlı.' });
+
+    if (dbBagli()) {
+      if (await User.findOne({ email: email.toLowerCase() })) {
+        return res.status(409).json({ mesaj: 'Bu e-posta zaten kayıtlı.' });
+      }
+      const user = await User.create({ ad, soyad, email, sifre, telefon, adres, konum });
+      return kullaniciDon(res, user, tokenOlustur(user._id));
     }
-    const user = await User.create({ ad, soyad, email, sifre, telefon, adres, konum });
+
+    const user = await memoryStore.kullaniciKayit({ ad, soyad, email, sifre, telefon, adres, konum });
     kullaniciDon(res, user, tokenOlustur(user._id));
-  } catch {
-    res.status(500).json({ mesaj: 'Kayıt oluşturulamadı.' });
+  } catch (err) {
+    console.error('[Demo] kayit hatasi:', err.message);
+    res.status(err.status || 500).json({ mesaj: err.message || 'Kayıt oluşturulamadı.' });
   }
 });
 
 router.post('/giris', async (req, res) => {
   try {
     const { email, sifre } = req.body;
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user || !(await user.sifreKontrol(sifre))) {
-      return res.status(401).json({ mesaj: 'E-posta veya şifre hatalı.' });
+    if (dbBagli()) {
+      const user = await User.findOne({ email: email.toLowerCase() });
+      if (!user || !(await user.sifreKontrol(sifre))) {
+        return res.status(401).json({ mesaj: 'E-posta veya şifre hatalı.' });
+      }
+      return kullaniciDon(res, user, tokenOlustur(user._id));
     }
+
+    const user = await memoryStore.kullaniciGiris(email, sifre);
     kullaniciDon(res, user, tokenOlustur(user._id));
-  } catch {
-    res.status(500).json({ mesaj: 'Giriş yapılamadı.' });
+  } catch (err) {
+    console.error('[Demo] giris hatasi:', err.message);
+    res.status(err.status || 500).json({ mesaj: err.message || 'Giriş yapılamadı.' });
   }
 });
 
@@ -43,19 +58,28 @@ router.post('/google', async (req, res) => {
   try {
     const { email, ad, soyad, googleId } = req.body;
     if (!email) return res.status(400).json({ mesaj: 'Google e-posta gerekli.' });
-    let user = await User.findOne({ $or: [{ email: email.toLowerCase() }, { googleId }] });
-    if (!user) {
-      user = await User.create({
-        ad: ad || 'Google', soyad: soyad || 'Kullanıcı',
-        email, sifre: Math.random().toString(36).slice(2),
-        googleId: googleId || `google_${Date.now()}`
-      });
-    } else if (!user.googleId) {
-      user.googleId = googleId || user.googleId;
-      await user.save();
+
+    if (dbBagli()) {
+      let user = await User.findOne({ $or: [{ email: email.toLowerCase() }, { googleId }] });
+      if (!user) {
+        user = await User.create({
+          ad: ad || 'Google', soyad: soyad || 'Kullanıcı',
+          email, sifre: Math.random().toString(36).slice(2),
+          googleId: googleId || `google_${Date.now()}`
+        });
+      } else if (!user.googleId) {
+        user.googleId = googleId || user.googleId;
+        await user.save();
+      }
+      return kullaniciDon(res, user, tokenOlustur(user._id));
     }
+
+    const user = await memoryStore.kullaniciBulVeyaOlustur({
+      email, ad, soyad, googleId: googleId || `google_${Date.now()}`
+    });
     kullaniciDon(res, user, tokenOlustur(user._id));
-  } catch {
+  } catch (err) {
+    console.error('[Demo] google giris hatasi:', err.message);
     res.status(500).json({ mesaj: 'Google girişi başarısız.' });
   }
 });
@@ -63,17 +87,27 @@ router.post('/google', async (req, res) => {
 router.post('/apple', async (req, res) => {
   try {
     const { email, ad, soyad, appleId } = req.body;
-    const eposta = email || `apple_${appleId || Date.now()}@demo.local`;
-    let user = await User.findOne({ $or: [{ email: eposta.toLowerCase() }, { appleId }] });
-    if (!user) {
-      user = await User.create({
-        ad: ad || 'Apple', soyad: soyad || 'Kullanıcı',
-        email: eposta, sifre: Math.random().toString(36).slice(2),
-        appleId: appleId || `apple_${Date.now()}`
-      });
+
+    if (dbBagli()) {
+      const eposta = email || `apple_${appleId || Date.now()}@demo.local`;
+      let user = await User.findOne({ $or: [{ email: eposta.toLowerCase() }, { appleId }] });
+      if (!user) {
+        user = await User.create({
+          ad: ad || 'Apple', soyad: soyad || 'Kullanıcı',
+          email: eposta, sifre: Math.random().toString(36).slice(2),
+          appleId: appleId || `apple_${Date.now()}`
+        });
+      }
+      return kullaniciDon(res, user, tokenOlustur(user._id));
     }
+
+    const user = await memoryStore.kullaniciBulVeyaOlustur({
+      email: email || `apple_${appleId || Date.now()}@demo.local`,
+      ad, soyad, appleId: appleId || `apple_${Date.now()}`
+    });
     kullaniciDon(res, user, tokenOlustur(user._id));
-  } catch {
+  } catch (err) {
+    console.error('[Demo] apple giris hatasi:', err.message);
     res.status(500).json({ mesaj: 'Apple girişi başarısız.' });
   }
 });
@@ -82,6 +116,9 @@ router.get('/profil', authZorunlu, (req, res) => res.json(req.user));
 
 router.put('/profil', authZorunlu, async (req, res) => {
   try {
+    if (!dbBagli() || memoryStore.isMemoryUser(req.user._id)) {
+      return res.status(503).json({ mesaj: 'Profil güncelleme geçici olarak kullanılamıyor.' });
+    }
     const { ad, soyad, telefon, adres, konum } = req.body;
     const user = await User.findByIdAndUpdate(req.user._id, { ad, soyad, telefon, adres, konum }, { new: true }).select('-sifre');
     res.json(user);
