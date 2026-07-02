@@ -2,9 +2,11 @@ const u = (id, w = 800) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=85`;
 
 export const BG_IMAGES = {
-  lavender: u('photo-1499002238440-d264edd596ec', 1400),
-  rose: u('photo-1582794549859-d2a299bfa77a', 1400),
-  hero: u('photo-1518709268805-4e9042af2179', 1200)
+  lavender: u('photo-1499002238440-d264edd596ec', 1600),
+  lavenderAlt: u('photo-1615485509133-12e1b2f455d0', 1600),
+  rose: u('photo-1582794549859-d2a299bfa77a', 1600),
+  roseAlt: u('photo-1518709268805-4e9042af2179', 1600),
+  hero: u('photo-1518709268805-4e9042af2179', 1400)
 };
 
 export const CATEGORY_IMAGES = {

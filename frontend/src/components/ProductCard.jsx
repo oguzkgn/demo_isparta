@@ -23,10 +23,8 @@ export default function ProductCard({ u, sepeteEkle, favoriMi, favoriToggle }) {
         </Link>
       </div>
       <div className="product-body">
-        <div className="product-brand">
-          {u.marka}
-          {u.saticiAd && <span className="seller-tag">· {u.saticiAd}</span>}
-        </div>
+        <div className="product-brand">{u.marka}</div>
+        {u.saticiAd && <div className="seller-tag">{u.saticiAd}</div>}
         <Link to={`/urun/${u._id}`} className="product-title">{u.ad}</Link>
         <div className="product-location">
           <IconMapPin size={13} />
