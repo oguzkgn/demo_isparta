@@ -16,6 +16,7 @@ import SellerPanelPage from './pages/SellerPanelPage';
 import SellerLoginPage from './pages/SellerLoginPage';
 import AdminReviewsPage from './pages/AdminReviewsPage';
 import EmailVerifyPage from './pages/EmailVerifyPage';
+import ApiWarmup from './components/ApiWarmup';
 import AnimatedBackground from './components/AnimatedBackground';
 import './App.css';
 
@@ -30,6 +31,7 @@ function AppRoutes() {
 
   return (
     <>
+      <ApiWarmup />
       {!saticiSayfasi && !authSayfasi && <AnimatedBackground />}
       <Routes>
         <Route path="/" element={<HomePage {...shared} />} />

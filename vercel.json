@@ -4,5 +4,8 @@
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install --include=dev --prefix frontend",
   "framework": "vite",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://demo-isparta.onrender.com/api/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

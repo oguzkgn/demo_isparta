@@ -2,7 +2,24 @@ import axios from 'axios';
 import { API_URL } from '../constants/config';
 import { asArray } from '../utils/safe';
 
-const api = axios.create({ baseURL: API_URL, timeout: 30000 });
+const COLD_START_TIMEOUT = 90000;
+const MAX_RETRY = 3;
+const RETRY_DELAY_MS = 4000;
+
+const api = axios.create({ baseURL: API_URL, timeout: COLD_START_TIMEOUT });
+
+function yenidenDenenebilirMi(err) {
+  if (err.response) return false;
+  return (
+    err.code === 'ECONNABORTED' ||
+    err.code === 'ERR_NETWORK' ||
+    err.message?.includes('Network Error')
+  );
+}
+
+function bekle(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('demo-token');
@@ -12,16 +29,32 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
+    const config = err.config;
+    if (config && yenidenDenenebilirMi(err)) {
+      config.__retryCount = config.__retryCount || 0;
+      if (config.__retryCount < MAX_RETRY) {
+        config.__retryCount += 1;
+        await bekle(RETRY_DELAY_MS * config.__retryCount);
+        return api(config);
+      }
+    }
     if (err.response?.data?.kod === 'EPOSTA_DOGRULANMADI') {
       localStorage.removeItem('demo-token');
     }
     if (!err.response) {
-      err.message = 'Sunucuya bağlanılamadı. API çalışıyor mu kontrol edin.';
+      err.message = err.code === 'ECONNABORTED'
+        ? 'Sunucu yanıt vermedi. Otomatik yeniden deneme başarısız; bir dakika bekleyip tekrar deneyin.'
+        : 'API sunucusuna bağlanılamadı.';
     }
     return Promise.reject(err);
   }
 );
+
+/** Render free tier uyandırma — uygulama açılışında çağrılır */
+export function apiUyandir() {
+  return api.get('/api/health', { timeout: COLD_START_TIMEOUT, __retryCount: 0 });
+}
 
 export const fetchProducts = (params) =>
   api.get('/api/urunler', { params }).then((r) => asArray(r.data));

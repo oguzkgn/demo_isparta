@@ -34,9 +34,9 @@ export function kayitFormDogrula(form) {
 export function apiHataMesaji(err, varsayilan = 'Bir hata oluştu.') {
   if (!err?.response) {
     if (err?.code === 'ECONNABORTED') {
-      return 'Sunucu yanıt vermedi. Render cold start olabilir; 30–60 saniye bekleyip tekrar deneyin.';
+      return 'Sunucu yanıt vermedi. Sayfa otomatik yeniden denedi; lütfen bir dakika bekleyip tekrar deneyin.';
     }
-    return 'API sunucusuna bağlanılamadı. demo-isparta.onrender.com erişilebilir mi kontrol edin.';
+    return 'API sunucusuna bağlanılamadı. İnternet bağlantınızı kontrol edin.';
   }
   const data = err.response.data;
   if (Array.isArray(data?.hatalar) && data.hatalar.length) {
