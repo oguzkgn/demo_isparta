@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const { authZorunlu, tokenOlustur } = require('../middleware/auth');
 const { dbBagli } = require('../lib/dbHelper');
 const memoryStore = require('../lib/memoryStore');
+const { kayitDogrula, girisDogrula } = require('../lib/validate');
 
 const router = express.Router();
 
@@ -14,43 +15,67 @@ function kullaniciDon(res, user, token) {
 router.post('/kayit', async (req, res) => {
   try {
     const { ad, soyad, email, sifre, telefon, adres, konum } = req.body;
-    if (!ad || !soyad || !email || !sifre) {
-      return res.status(400).json({ mesaj: 'Ad, soyad, e-posta ve şifre zorunludur.' });
+    const hatalar = kayitDogrula({ ad, soyad, email, sifre, telefon });
+    if (hatalar.length) {
+      return res.status(400).json({
+        mesaj: hatalar[0],
+        hatalar,
+        kod: 'DOGRULAMA'
+      });
     }
-    if (sifre.length < 6) return res.status(400).json({ mesaj: 'Şifre en az 6 karakter olmalı.' });
 
     if (dbBagli()) {
-      if (await User.findOne({ email: email.toLowerCase() })) {
-        return res.status(409).json({ mesaj: 'Bu e-posta zaten kayıtlı.' });
+      try {
+        if (await User.findOne({ email: email.toLowerCase() })) {
+          return res.status(409).json({ mesaj: 'Bu e-posta zaten kayıtlı.', kod: 'EPOSTA_KAYITLI' });
+        }
+        const user = await User.create({ ad, soyad, email, sifre, telefon, adres, konum });
+        return kullaniciDon(res, user, tokenOlustur(user._id));
+      } catch (err) {
+        console.error('[Demo] Mongo kayit hatasi, bellek modu:', err.message);
       }
-      const user = await User.create({ ad, soyad, email, sifre, telefon, adres, konum });
-      return kullaniciDon(res, user, tokenOlustur(user._id));
     }
 
     const user = await memoryStore.kullaniciKayit({ ad, soyad, email, sifre, telefon, adres, konum });
     kullaniciDon(res, user, tokenOlustur(user._id));
   } catch (err) {
     console.error('[Demo] kayit hatasi:', err.message);
-    res.status(err.status || 500).json({ mesaj: err.message || 'Kayıt oluşturulamadı.' });
+    const status = err.status || 500;
+    res.status(status).json({
+      mesaj: err.message || 'Kayıt oluşturulamadı.',
+      kod: status === 409 ? 'EPOSTA_KAYITLI' : status === 400 ? 'DOGRULAMA' : 'SUNUCU'
+    });
   }
 });
 
 router.post('/giris', async (req, res) => {
   try {
     const { email, sifre } = req.body;
+    const hatalar = girisDogrula({ email, sifre });
+    if (hatalar.length) {
+      return res.status(400).json({ mesaj: hatalar[0], hatalar, kod: 'DOGRULAMA' });
+    }
+
     if (dbBagli()) {
-      const user = await User.findOne({ email: email.toLowerCase() });
-      if (!user || !(await user.sifreKontrol(sifre))) {
-        return res.status(401).json({ mesaj: 'E-posta veya şifre hatalı.' });
+      try {
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (!user || !(await user.sifreKontrol(sifre))) {
+          return res.status(401).json({ mesaj: 'E-posta veya şifre hatalı.', kod: 'GIRIS_HATALI' });
+        }
+        return kullaniciDon(res, user, tokenOlustur(user._id));
+      } catch (err) {
+        console.error('[Demo] Mongo giris hatasi, bellek modu:', err.message);
       }
-      return kullaniciDon(res, user, tokenOlustur(user._id));
     }
 
     const user = await memoryStore.kullaniciGiris(email, sifre);
     kullaniciDon(res, user, tokenOlustur(user._id));
   } catch (err) {
     console.error('[Demo] giris hatasi:', err.message);
-    res.status(err.status || 500).json({ mesaj: err.message || 'Giriş yapılamadı.' });
+    res.status(err.status || 500).json({
+      mesaj: err.message || 'Giriş yapılamadı.',
+      kod: err.status === 401 ? 'GIRIS_HATALI' : 'SUNUCU'
+    });
   }
 });
 

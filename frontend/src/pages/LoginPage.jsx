@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { apiHataMesaji } from '../utils/apiError';
 import { musteriYonlendir } from '../utils/authRedirect';
 import Layout from '../components/Layout';
 
@@ -20,7 +21,7 @@ export default function LoginPage({ arama, setArama, kategori, setKategori, konu
       await girisYap(email, sifre);
       musteriYonlendir(navigate);
     } catch (err) {
-      setHata(err.response?.data?.mesaj || 'Giriş başarısız.');
+      setHata(apiHataMesaji(err, 'Giriş başarısız.'));
     } finally {
       setYukleniyor(false);
     }
