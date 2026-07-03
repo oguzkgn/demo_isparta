@@ -78,12 +78,18 @@ export default function AuthPortalPage() {
       return;
     }
     sessionStorage.setItem('authPortal', portal);
+    let sonuc;
     if (portal === 'satici') {
       sessionStorage.setItem('pendingSellerSetup', '1');
-      await registerSeller(form);
+      sonuc = await registerSeller(form);
     } else {
       sessionStorage.removeItem('pendingSellerSetup');
-      await kayitOl(form);
+      sonuc = await kayitOl(form);
+    }
+    if (sonuc?.mailGonderildi === false) {
+      sessionStorage.setItem('mailGonderilemedi', '1');
+    } else {
+      sessionStorage.removeItem('mailGonderilemedi');
     }
     navigate(`/eposta-dogrula?email=${encodeURIComponent(form.email)}&portal=${portal}`, { replace: true });
   };
@@ -106,7 +112,7 @@ export default function AuthPortalPage() {
         return;
       }
       if (kayitModu && err.response?.status === 409) {
-        setHatalar(['Bu e-posta zaten kayıtlı. Lütfen Giriş Yap sekmesini kullanın.']);
+        setHatalar(['Bu e-posta zaten kayıtlı. Giriş Yap sekmesini kullanın — doğrulama kodu gelmediyse girişten sonra «Kodu yeniden gönder» deneyin.']);
         return;
       }
       if (kayitModu && err.response?.status === 503) {

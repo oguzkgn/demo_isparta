@@ -381,7 +381,7 @@ function kullaniciEmailIle(email) {
 }
 
 function kullaniciDogrulamaAta(email) {
-  const user = kullaniciEmailIle(email);
+  const user = kullaniciHamEmailIle(email);
   if (!user) return null;
   const { kodAta } = require('./emailDogrulama');
   kodAta(user);
@@ -390,7 +390,7 @@ function kullaniciDogrulamaAta(email) {
 }
 
 function kullaniciDogrula(email, kod) {
-  const user = kullaniciEmailIle(email);
+  const user = kullaniciHamEmailIle(email);
   if (!user) return null;
   const { kodDogrula, dogrulamaTamamla } = require('./emailDogrulama');
   if (!kodDogrula(user, kod)) return null;

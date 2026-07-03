@@ -33,7 +33,7 @@ async function dogrulamaMailiGuvenliGonder(userDoc) {
     await dogrulamaMailiGonder(userDoc);
     return true;
   } catch (error) {
-    console.error('Mail gönderim hatası:', error);
+    console.error('Mail gönderim hatası:', error.message || error);
     return false;
   }
 }
@@ -111,7 +111,11 @@ router.post('/satici-kayit', async (req, res) => {
         const user = await User.create({ ad, soyad, email, sifre, telefon, rol: 'kullanici', emailDogrulandi: false, saticiKayit: true });
         return kayitSonrasiDogrulama(res, { mongoId: user._id, email: user.email });
       } catch (err) {
-        console.error('[Demo] Mongo satici-kayit hatasi, bellek modu:', err.message);
+        if (err.code === 11000) {
+          return res.status(409).json({ mesaj: 'Bu e-posta zaten kayıtlı.', kod: 'EPOSTA_KAYITLI' });
+        }
+        console.error('[Demo] Mongo satici-kayit hatasi:', err.message);
+        return res.status(500).json({ mesaj: 'Kayıt oluşturulamadı.', kod: 'SUNUCU' });
       }
     }
 
@@ -145,7 +149,11 @@ router.post('/kayit', async (req, res) => {
         const user = await User.create({ ad, soyad, email, sifre, telefon, adres, konum, emailDogrulandi: false });
         return kayitSonrasiDogrulama(res, { mongoId: user._id, email: user.email });
       } catch (err) {
-        console.error('[Demo] Mongo kayit hatasi, bellek modu:', err.message);
+        if (err.code === 11000) {
+          return res.status(409).json({ mesaj: 'Bu e-posta zaten kayıtlı.', kod: 'EPOSTA_KAYITLI' });
+        }
+        console.error('[Demo] Mongo kayit hatasi:', err.message);
+        return res.status(500).json({ mesaj: 'Kayıt oluşturulamadı.', kod: 'SUNUCU' });
       }
     }
 

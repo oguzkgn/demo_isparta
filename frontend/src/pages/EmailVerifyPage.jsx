@@ -14,6 +14,7 @@ export default function EmailVerifyPage() {
   const [mesaj, setMesaj] = useState('');
   const [hata, setHata] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
+  const mailUyari = sessionStorage.getItem('mailGonderilemedi') === '1';
 
   useEffect(() => {
     const ep = searchParams.get('email');
@@ -40,6 +41,7 @@ export default function EmailVerifyPage() {
         navigate('/', { replace: true });
       }
       sessionStorage.removeItem('authPortal');
+      sessionStorage.removeItem('mailGonderilemedi');
     } catch (err) {
       setHata(err.response?.data?.mesaj || 'Doğrulama başarısız.');
     } finally {
@@ -68,6 +70,11 @@ export default function EmailVerifyPage() {
               {email ? `${email} adresine gönderilen 6 haneli kodu girin.` : 'E-postanıza gelen kodu girin.'}
               {' '}Kod yalnızca e-posta kutunuzda görünür.
             </p>
+            {mailUyari && (
+              <div className="auth-error">
+                E-posta gönderilemedi. SMTP ayarlarını kontrol edin veya «Kodu Yeniden Gönder»e tıklayın.
+              </div>
+            )}
             {mesaj && <div className="auth-success">{mesaj}</div>}
             {hata && <div className="auth-error">{hata}</div>}
             <label>E-posta<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>

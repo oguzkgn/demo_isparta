@@ -3,26 +3,63 @@ const nodemailer = require('nodemailer');
 let transporter;
 
 function smtpYapilandirildiMi() {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  return Boolean(
+    process.env.SMTP_HOST &&
+    process.env.SMTP_USER &&
+    String(process.env.SMTP_PASS || '').trim()
+  );
+}
+
+function smtpPort() {
+  return Number(process.env.SMTP_PORT || 587);
+}
+
+function smtpSecure(port) {
+  if (process.env.SMTP_SECURE === 'true') return true;
+  if (process.env.SMTP_SECURE === 'false') return false;
+  return port === 465;
+}
+
+function smtpKimlik() {
+  return {
+    user: String(process.env.SMTP_USER || '').trim(),
+    pass: String(process.env.SMTP_PASS || '').trim().replace(/\s+/g, '')
+  };
+}
+
+function fromAdresi() {
+  const ham = (process.env.SMTP_FROM || process.env.SMTP_USER || '').trim();
+  const acik = ham.match(/<([^>]+@[^>]+)>/);
+  const duz = ham.match(/([^\s<>"']+@[^\s<>"']+)/);
+  const eposta = (acik?.[1] || duz?.[1] || ham.replace(/^<|>$/g, '')).trim();
+  if (eposta.includes('@')) return `demo Isparta <${eposta}>`;
+  return ham || smtpKimlik().user;
+}
+
+function transporterSifirla() {
+  transporter = null;
 }
 
 function transporterAl() {
   if (transporter) return transporter;
   if (!smtpYapilandirildiMi()) return null;
+
+  const port = smtpPort();
+  const secure = smtpSecure(port);
+
   transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
+    host: String(process.env.SMTP_HOST).trim(),
+    port,
+    secure,
+    auth: smtpKimlik()
   });
+
+  console.log(`[Demo] SMTP: ${process.env.SMTP_HOST}:${port} secure=${secure}`);
   return transporter;
 }
 
 function uygulamaUrl() {
-  return process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:3001';
+  return process.env.APP_URL || process.env.FRONTEND_URL || 'https://demo-isparta.vercel.app';
 }
 
 async function epostaGonder({ to, konu, metin, html }) {
@@ -32,14 +69,21 @@ async function epostaGonder({ to, konu, metin, html }) {
     hata.kod = 'SMTP_YOK';
     throw hata;
   }
-  await transport.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to,
-    subject: konu,
-    text: metin,
-    html: html || metin.replace(/\n/g, '<br>')
-  });
-  return { gonderildi: true };
+
+  try {
+    await transport.sendMail({
+      from: fromAdresi(),
+      to,
+      subject: konu,
+      text: metin,
+      html: html || metin.replace(/\n/g, '<br>')
+    });
+    return { gonderildi: true };
+  } catch (error) {
+    transporterSifirla();
+    console.error('[Demo] SMTP sendMail hatası:', error.message);
+    throw error;
+  }
 }
 
 async function dogrulamaMailiGonder(kullanici) {
@@ -76,4 +120,10 @@ async function dogrulamaMailiGonder(kullanici) {
   return { gonderildi: true };
 }
 
-module.exports = { epostaGonder, dogrulamaMailiGonder, smtpYapilandirildiMi, uygulamaUrl };
+module.exports = {
+  epostaGonder,
+  dogrulamaMailiGonder,
+  smtpYapilandirildiMi,
+  uygulamaUrl,
+  transporterSifirla
+};
