@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { epostaDogrulandiMi, epostaDogrulamaYolu } from '../utils/authVerify';
 
-/** Satıcı hesabı müşteri arayüzüne giremez. */
+/** Müşteri hesabı satıcı arayüzüne giremez; doğrulanmamış e-posta doğrulama sayfasına gider. */
 export default function CustomerGuard({ children }) {
   const { kullanici, yukleniyor } = useAuth();
   const navigate = useNavigate();

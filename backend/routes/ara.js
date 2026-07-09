@@ -1,6 +1,6 @@
 const express = require('express');
 const User = require('../models/User');
-const { authZorunlu } = require('../middleware/auth');
+const { authZorunlu, epostaDogrulandiZorunlu } = require('../middleware/auth');
 const memoryStore = require('../lib/memoryStore');
 const { urunleriGetir } = require('../lib/urunService');
 
@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/son-gorulen', authZorunlu, async (req, res) => {
+router.get('/son-gorulen', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     if (req.memoryMode) {
       return res.json(memoryStore.sonGorulenGetir(req.user._id));
@@ -40,7 +40,7 @@ router.get('/son-gorulen', authZorunlu, async (req, res) => {
   }
 });
 
-router.post('/son-gorulen/:urunId', authZorunlu, async (req, res) => {
+router.post('/son-gorulen/:urunId', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     if (req.memoryMode) {
       memoryStore.sonGorulenEkle(req.user._id, req.params.urunId);

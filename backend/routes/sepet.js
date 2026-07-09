@@ -1,7 +1,7 @@
 const express = require('express');
 const User = require('../models/User');
 const Product = require('../models/Product');
-const { authZorunlu } = require('../middleware/auth');
+const { authZorunlu, epostaDogrulandiZorunlu } = require('../middleware/auth');
 const { dbBagli } = require('../lib/dbHelper');
 const memoryStore = require('../lib/memoryStore');
 const { urunGetir } = require('../lib/urunService');
@@ -12,7 +12,7 @@ async function sepetGetir(userId) {
   return User.findById(userId).populate('sepet.urun').select('sepet');
 }
 
-router.get('/', authZorunlu, async (req, res) => {
+router.get('/', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     if (req.memoryMode) {
       return res.json(memoryStore.sepetGetir(req.user._id));
@@ -25,7 +25,7 @@ router.get('/', authZorunlu, async (req, res) => {
   }
 });
 
-router.post('/', authZorunlu, async (req, res) => {
+router.post('/', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const { urunId, adet = 1, beden, renk } = req.body;
     const urun = await urunGetir(urunId);
@@ -59,7 +59,7 @@ router.post('/', authZorunlu, async (req, res) => {
   }
 });
 
-router.put('/:urunId', authZorunlu, async (req, res) => {
+router.put('/:urunId', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const { adet } = req.body;
     if (req.memoryMode) {
@@ -78,7 +78,7 @@ router.put('/:urunId', authZorunlu, async (req, res) => {
   }
 });
 
-router.delete('/:urunId', authZorunlu, async (req, res) => {
+router.delete('/:urunId', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     if (req.memoryMode) {
       return res.json(memoryStore.sepettenSil(req.user._id, req.params.urunId));

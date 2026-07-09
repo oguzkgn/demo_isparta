@@ -1,16 +1,16 @@
 const express = require('express');
 const Return = require('../models/Return');
 const Order = require('../models/Order');
-const { authZorunlu, rolZorunlu } = require('../middleware/auth');
+const { authZorunlu, epostaDogrulandiZorunlu, rolZorunlu } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/', authZorunlu, async (req, res) => {
+router.get('/', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   const list = await Return.find({ kullanici: req.user._id }).sort({ createdAt: -1 });
   res.json(list);
 });
 
-router.post('/', authZorunlu, async (req, res) => {
+router.post('/', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const siparis = await Order.findOne({ _id: req.body.siparisId, kullanici: req.user._id });
     if (!siparis) return res.status(404).json({ mesaj: 'Sipariş bulunamadı.' });
@@ -32,7 +32,7 @@ router.post('/', authZorunlu, async (req, res) => {
   }
 });
 
-router.patch('/:id/onay', authZorunlu, rolZorunlu('admin', 'satici'), async (req, res) => {
+router.patch('/:id/onay', authZorunlu, epostaDogrulandiZorunlu, rolZorunlu('admin', 'satici'), async (req, res) => {
   const iade = await Return.findByIdAndUpdate(req.params.id, { durum: 'onaylandi' }, { new: true });
   res.json(iade);
 });

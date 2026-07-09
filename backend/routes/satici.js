@@ -3,7 +3,7 @@ const Vendor = require('../models/Vendor');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const User = require('../models/User');
-const { authZorunlu, rolZorunlu } = require('../middleware/auth');
+const { authZorunlu, epostaDogrulandiZorunlu, rolZorunlu } = require('../middleware/auth');
 const { dbBagli } = require('../lib/dbHelper');
 const memoryStore = require('../lib/memoryStore');
 const { durumGecerliMi } = require('../data/orderDurumlar');
@@ -55,7 +55,7 @@ async function ensureSaticiMiddleware(req, res, next) {
   }
 }
 
-router.post('/hazir', authZorunlu, async (req, res) => {
+router.post('/hazir', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     if (!memoryMod(req)) {
       try {
@@ -89,7 +89,7 @@ router.post('/hazir', authZorunlu, async (req, res) => {
   }
 });
 
-router.post('/basvuru', authZorunlu, async (req, res) => {
+router.post('/basvuru', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     if (['satici', 'admin'].includes(req.user.rol)) {
       return res.status(409).json({ mesaj: 'Zaten satıcı hesabınız var.' });
@@ -123,7 +123,7 @@ router.post('/basvuru', authZorunlu, async (req, res) => {
   }
 });
 
-router.get('/benim', authZorunlu, async (req, res) => {
+router.get('/benim', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     if (!memoryMod(req)) {
       const vendor = await Vendor.findOne({ kullanici: req.user._id });
@@ -135,12 +135,12 @@ router.get('/benim', authZorunlu, async (req, res) => {
   }
 });
 
-router.get('/basvurular', authZorunlu, rolZorunlu('admin'), async (_req, res) => {
+router.get('/basvurular', authZorunlu, epostaDogrulandiZorunlu, rolZorunlu('admin'), async (_req, res) => {
   const list = await Vendor.find({ durum: 'beklemede' }).populate('kullanici', 'ad soyad email');
   res.json(list);
 });
 
-router.patch('/:id/onayla', authZorunlu, rolZorunlu('admin'), async (req, res) => {
+router.patch('/:id/onayla', authZorunlu, epostaDogrulandiZorunlu, rolZorunlu('admin'), async (req, res) => {
   const vendor = await Vendor.findByIdAndUpdate(req.params.id, { durum: 'onayli' }, { new: true });
   if (vendor) {
     await User.findByIdAndUpdate(vendor.kullanici, { rol: 'satici', satici: vendor._id });
@@ -148,14 +148,14 @@ router.patch('/:id/onayla', authZorunlu, rolZorunlu('admin'), async (req, res) =
   res.json(vendor);
 });
 
-router.patch('/:id/reddet', authZorunlu, rolZorunlu('admin'), async (req, res) => {
+router.patch('/:id/reddet', authZorunlu, epostaDogrulandiZorunlu, rolZorunlu('admin'), async (req, res) => {
   const vendor = await Vendor.findByIdAndUpdate(req.params.id, {
     durum: 'reddedildi', redNedeni: req.body.redNedeni || 'Başvuru reddedildi'
   }, { new: true });
   res.json(vendor);
 });
 
-router.get('/panel/urunler', authZorunlu, ensureSaticiMiddleware, async (req, res) => {
+router.get('/panel/urunler', authZorunlu, epostaDogrulandiZorunlu, ensureSaticiMiddleware, async (req, res) => {
   try {
     if (!memoryMod(req)) {
       const vendor = await Vendor.findOne({ kullanici: req.user._id });
@@ -169,7 +169,7 @@ router.get('/panel/urunler', authZorunlu, ensureSaticiMiddleware, async (req, re
   }
 });
 
-router.post('/panel/urunler', authZorunlu, ensureSaticiMiddleware, async (req, res) => {
+router.post('/panel/urunler', authZorunlu, epostaDogrulandiZorunlu, ensureSaticiMiddleware, async (req, res) => {
   try {
     if (!memoryMod(req)) {
       const vendor = await Vendor.findOne({ kullanici: req.user._id, durum: 'onayli' });
@@ -185,7 +185,7 @@ router.post('/panel/urunler', authZorunlu, ensureSaticiMiddleware, async (req, r
   }
 });
 
-router.put('/panel/urunler/:id', authZorunlu, ensureSaticiMiddleware, async (req, res) => {
+router.put('/panel/urunler/:id', authZorunlu, epostaDogrulandiZorunlu, ensureSaticiMiddleware, async (req, res) => {
   try {
     if (!memoryMod(req)) {
       const vendor = await Vendor.findOne({ kullanici: req.user._id });
@@ -204,7 +204,7 @@ router.put('/panel/urunler/:id', authZorunlu, ensureSaticiMiddleware, async (req
   }
 });
 
-router.delete('/panel/urunler/:id', authZorunlu, ensureSaticiMiddleware, async (req, res) => {
+router.delete('/panel/urunler/:id', authZorunlu, epostaDogrulandiZorunlu, ensureSaticiMiddleware, async (req, res) => {
   try {
     if (!memoryMod(req)) {
       const vendor = await Vendor.findOne({ kullanici: req.user._id });
@@ -220,7 +220,7 @@ router.delete('/panel/urunler/:id', authZorunlu, ensureSaticiMiddleware, async (
   }
 });
 
-router.get('/panel/siparisler', authZorunlu, ensureSaticiMiddleware, async (req, res) => {
+router.get('/panel/siparisler', authZorunlu, epostaDogrulandiZorunlu, ensureSaticiMiddleware, async (req, res) => {
   try {
     if (!memoryMod(req)) {
       const vendor = await Vendor.findOne({ kullanici: req.user._id });
@@ -234,7 +234,7 @@ router.get('/panel/siparisler', authZorunlu, ensureSaticiMiddleware, async (req,
   }
 });
 
-router.patch('/panel/siparisler/:id/durum', authZorunlu, ensureSaticiMiddleware, async (req, res) => {
+router.patch('/panel/siparisler/:id/durum', authZorunlu, epostaDogrulandiZorunlu, ensureSaticiMiddleware, async (req, res) => {
   try {
     const { durum } = req.body;
     if (!durumGecerliMi(durum)) {

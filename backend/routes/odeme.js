@@ -1,9 +1,9 @@
 const express = require('express');
-const { authZorunlu } = require('../middleware/auth');
+const { authZorunlu, epostaDogrulandiZorunlu } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post('/odeme', authZorunlu, async (req, res) => {
+router.post('/odeme', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   const { kartNo, cvv, sonKullanma, taksit = 1, tutar } = req.body;
   if (!kartNo || !cvv || !sonKullanma) {
     return res.status(400).json({ mesaj: 'Kart bilgileri eksik.' });

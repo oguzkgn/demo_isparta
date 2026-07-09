@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { epostaDogrulandiMi, epostaDogrulamaYolu } from '../utils/authVerify';
 
 /** Müşteri hesabı satıcı paneline giremez. */
 export default function SellerGuard({ children }) {
@@ -8,8 +9,13 @@ export default function SellerGuard({ children }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!yukleniyor && kullanici?.rol === 'kullanici') {
+    if (yukleniyor || !kullanici) return;
+    if (kullanici.rol === 'kullanici') {
       navigate('/satici/giris', { replace: true });
+      return;
+    }
+    if (!epostaDogrulandiMi(kullanici)) {
+      navigate(epostaDogrulamaYolu(kullanici.email, 'satici'), { replace: true });
     }
   }, [kullanici, yukleniyor, navigate]);
 
@@ -17,6 +23,7 @@ export default function SellerGuard({ children }) {
     return <div className="loading">Yükleniyor...</div>;
   }
   if (kullanici?.rol === 'kullanici') return null;
+  if (kullanici && !epostaDogrulandiMi(kullanici)) return null;
 
   return children;
 }

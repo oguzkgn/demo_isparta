@@ -2,7 +2,7 @@ const express = require('express');
 const Review = require('../models/Review');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
-const { authZorunlu, rolZorunlu } = require('../middleware/auth');
+const { authZorunlu, epostaDogrulandiZorunlu, rolZorunlu } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -26,23 +26,23 @@ router.get('/urun/:urunId', async (req, res) => {
   }
 });
 
-router.get('/bekleyen', authZorunlu, rolZorunlu('admin'), async (_req, res) => {
+router.get('/bekleyen', authZorunlu, epostaDogrulandiZorunlu, rolZorunlu('admin'), async (_req, res) => {
   const yorumlar = await Review.find({ onayDurumu: 'beklemede' }).populate('urun', 'ad').sort({ createdAt: -1 });
   res.json(yorumlar);
 });
 
-router.patch('/:id/onay', authZorunlu, rolZorunlu('admin'), async (req, res) => {
+router.patch('/:id/onay', authZorunlu, epostaDogrulandiZorunlu, rolZorunlu('admin'), async (req, res) => {
   const yorum = await Review.findByIdAndUpdate(req.params.id, { onayDurumu: 'onaylandi' }, { new: true });
   if (yorum) await puanGuncelle(yorum.urun);
   res.json(yorum);
 });
 
-router.patch('/:id/red', authZorunlu, rolZorunlu('admin'), async (req, res) => {
+router.patch('/:id/red', authZorunlu, epostaDogrulandiZorunlu, rolZorunlu('admin'), async (req, res) => {
   const yorum = await Review.findByIdAndUpdate(req.params.id, { onayDurumu: 'reddedildi' }, { new: true });
   res.json(yorum);
 });
 
-router.post('/urun/:urunId', authZorunlu, async (req, res) => {
+router.post('/urun/:urunId', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const { puan, yorum, fotoUrl, siparisId } = req.body;
     if (!puan || !yorum?.trim()) return res.status(400).json({ mesaj: 'Puan ve yorum gerekli.' });

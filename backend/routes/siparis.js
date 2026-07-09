@@ -1,14 +1,14 @@
 const express = require('express');
 const User = require('../models/User');
 const Order = require('../models/Order');
-const { authZorunlu } = require('../middleware/auth');
+const { authZorunlu, epostaDogrulandiZorunlu } = require('../middleware/auth');
 const { kuponDogrula } = require('../data/kuponlar');
 const { IPTAL_EDILEMEZ } = require('../data/orderDurumlar');
 
 const router = express.Router();
 const KARGO_UCRETI = 29.99;
 
-router.get('/', authZorunlu, async (req, res) => {
+router.get('/', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const siparisler = await Order.find({ kullanici: req.user._id }).sort({ createdAt: -1 });
     res.json(siparisler);
@@ -17,7 +17,7 @@ router.get('/', authZorunlu, async (req, res) => {
   }
 });
 
-router.get('/:id', authZorunlu, async (req, res) => {
+router.get('/:id', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const siparis = await Order.findOne({ _id: req.params.id, kullanici: req.user._id });
     if (!siparis) return res.status(404).json({ mesaj: 'Sipariş bulunamadı.' });
@@ -27,7 +27,7 @@ router.get('/:id', authZorunlu, async (req, res) => {
   }
 });
 
-router.post('/', authZorunlu, async (req, res) => {
+router.post('/', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).populate('sepet.urun');
     if (!user.sepet.length) {
@@ -77,7 +77,7 @@ router.post('/', authZorunlu, async (req, res) => {
   }
 });
 
-router.patch('/:id/iptal', authZorunlu, async (req, res) => {
+router.patch('/:id/iptal', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const siparis = await Order.findOne({ _id: req.params.id, kullanici: req.user._id });
     if (!siparis) return res.status(404).json({ mesaj: 'Sipariş bulunamadı.' });

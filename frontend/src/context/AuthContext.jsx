@@ -24,14 +24,9 @@ export function AuthProvider({ children }) {
     try {
       const profil = await fetchProfile();
       setKullanici(profil);
-    } catch (err) {
-      if (err.response?.data?.kod === 'EPOSTA_DOGRULANMADI') {
-        setKullanici(null);
-        localStorage.removeItem('demo-token');
-      } else {
-        localStorage.removeItem('demo-token');
-        setKullanici(null);
-      }
+    } catch {
+      localStorage.removeItem('demo-token');
+      setKullanici(null);
     } finally {
       setYukleniyor(false);
     }
@@ -46,7 +41,12 @@ export function AuthProvider({ children }) {
     return u;
   };
 
-  const kayitOl = async (formData) => apiRegister(formData);
+  const kayitOl = async (formData) => {
+    const data = await apiRegister(formData);
+    const u = oturumKaydet(data);
+    if (u) setKullanici(u);
+    return data;
+  };
 
   const epostaDogrula = async (email, kod) => {
     const data = await verifyEmail({ email, kod });

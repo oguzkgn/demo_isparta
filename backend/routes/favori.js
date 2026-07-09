@@ -1,12 +1,12 @@
 const express = require('express');
 const User = require('../models/User');
-const { authZorunlu } = require('../middleware/auth');
+const { authZorunlu, epostaDogrulandiZorunlu } = require('../middleware/auth');
 const memoryStore = require('../lib/memoryStore');
 const { urunGetir } = require('../lib/urunService');
 
 const router = express.Router();
 
-router.get('/', authZorunlu, async (req, res) => {
+router.get('/', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     if (req.memoryMode) {
       return res.json(memoryStore.favorilerGetir(req.user._id));
@@ -19,7 +19,7 @@ router.get('/', authZorunlu, async (req, res) => {
   }
 });
 
-router.post('/:urunId', authZorunlu, async (req, res) => {
+router.post('/:urunId', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const urun = await urunGetir(req.params.urunId);
     if (!urun) return res.status(404).json({ mesaj: 'Ürün bulunamadı.' });
@@ -42,7 +42,7 @@ router.post('/:urunId', authZorunlu, async (req, res) => {
   }
 });
 
-router.delete('/:urunId', authZorunlu, async (req, res) => {
+router.delete('/:urunId', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     if (req.memoryMode) {
       return res.json(memoryStore.favoriSil(req.user._id, req.params.urunId));

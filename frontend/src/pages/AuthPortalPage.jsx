@@ -3,7 +3,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { registerSeller, prepareSeller } from '../api/client';
 import { kayitFormDogrula, apiHataMesaji } from '../utils/apiError';
-import { saticiGirisSonrasi } from '../utils/sellerAuth';
+import { saticiPanelHazirla } from '../utils/sellerAuth';
 import { epostaDogrulandiMi, epostaDogrulamaYolu } from '../utils/authVerify';
 import AuthShellLayout, { PortalToggle } from '../components/AuthShellLayout';
 import { AuthModeToggle } from '../components/AuthModeToggle';
@@ -57,11 +57,17 @@ export default function AuthPortalPage() {
 
   const girisGonder = async () => {
     sessionStorage.setItem('authPortal', portal);
+    const u = await girisYap(form.email, form.sifre);
+
+    if (!epostaDogrulandiMi(u)) {
+      dogrulamaYonlendir(u.email || form.email);
+      return;
+    }
+
     if (portal === 'satici') {
-      await saticiGirisSonrasi(girisYap, form.email, form.sifre, kullaniciGuncelle, cikisYap);
+      await saticiPanelHazirla(u, kullaniciGuncelle, cikisYap);
       navigate('/satici/panel?tab=ilan', { replace: true });
     } else {
-      const u = await girisYap(form.email, form.sifre);
       if (u.rol === 'satici') {
         cikisYap();
         setHata('Bu hesap satıcı hesabıdır. Üstten Satıcı sekmesini seçin.');
@@ -82,6 +88,10 @@ export default function AuthPortalPage() {
     if (portal === 'satici') {
       sessionStorage.setItem('pendingSellerSetup', '1');
       sonuc = await registerSeller(form);
+      if (sonuc?.token) {
+        localStorage.setItem('demo-token', sonuc.token);
+        if (sonuc.kullanici) kullaniciGuncelle(sonuc.kullanici);
+      }
     } else {
       sessionStorage.removeItem('pendingSellerSetup');
       sonuc = await kayitOl(form);
@@ -137,6 +147,10 @@ export default function AuthPortalPage() {
       const u = tip === 'Google'
         ? await googleGiris(eposta, 'Google', 'Kullanıcı')
         : await appleGiris(eposta);
+      if (!epostaDogrulandiMi(u)) {
+        dogrulamaYonlendir(u.email || eposta);
+        return;
+      }
       if (portal === 'satici') {
         if (u.rol !== 'satici' && u.rol !== 'admin') {
           if (!u.saticiKayit) {

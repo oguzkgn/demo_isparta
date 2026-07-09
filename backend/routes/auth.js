@@ -1,7 +1,7 @@
 const express = require('express');
 const User = require('../models/User');
 const Order = require('../models/Order');
-const { authZorunlu, tokenOlustur } = require('../middleware/auth');
+const { authZorunlu, epostaDogrulandiZorunlu, tokenOlustur } = require('../middleware/auth');
 const { dbBagli } = require('../lib/dbHelper');
 const memoryStore = require('../lib/memoryStore');
 const { kayitDogrula, girisDogrula } = require('../lib/validate');
@@ -47,17 +47,23 @@ async function dogrulamaGonder(userDoc) {
 async function kayitSonrasiDogrulama(res, { mongoId, email }) {
   try {
     let mailGonderildi = false;
+    let kullanici = null;
+    let token = null;
 
     if (dbBagli() && mongoId) {
       const user = await User.findById(mongoId);
       if (!user) throw new Error('Kullanıcı bulunamadı');
       await dogrulamaKoduKaydet(user);
       mailGonderildi = await dogrulamaMailiGuvenliGonder(user);
+      kullanici = user;
+      token = tokenOlustur(user._id);
     } else {
       memoryStore.kullaniciDogrulamaAta(email);
       const ham = memoryStore.kullaniciHamEmailIle(email);
       if (!ham) throw new Error('Kullanıcı bulunamadı');
       mailGonderildi = await dogrulamaMailiGuvenliGonder(ham);
+      kullanici = memoryStore.kullaniciEmailIle(email);
+      token = tokenOlustur(ham._id);
     }
 
     return res.status(201).json({
@@ -65,8 +71,11 @@ async function kayitSonrasiDogrulama(res, { mongoId, email }) {
         ? 'Kayıt oluşturuldu. E-postanıza doğrulama kodu gönderildi.'
         : 'Kayıt oluşturuldu. Doğrulama e-postası şu an gönderilemedi; «Kodu yeniden gönder» ile tekrar deneyin.',
       email,
+      kullanici,
+      token,
       emailDogrulandi: false,
       mailGonderildi,
+      dogrulamaGerekli: true,
       islemKodu: 'EPOSTA_BEKLENIYOR'
     });
   } catch (err) {
@@ -82,17 +91,23 @@ async function mongoKullaniciBulEmail(email) {
   return User.findOne({ email: email.toLowerCase() });
 }
 
-async function girisOncesiDogrulama(user, res, next) {
-  if (epostaDogrulandiMi(user)) return next();
-  if (dbBagli() && user._id && !memoryStore.isMemoryUser(user._id)) {
-    const doc = await User.findById(user._id);
-    if (doc) await dogrulamaGonder(doc);
-  } else {
-    memoryStore.kullaniciDogrulamaAta(user.email);
-    const u = memoryStore.kullaniciEmailIle(user.email);
-    if (u) await dogrulamaMailiGuvenliGonder(memoryStore.kullaniciHamEmailIle(user.email));
+async function girisYanit(res, user) {
+  const token = tokenOlustur(user._id);
+  if (!epostaDogrulandiMi(user)) {
+    if (dbBagli() && user._id && !memoryStore.isMemoryUser(user._id)) {
+      const doc = await User.findById(user._id);
+      if (doc) await dogrulamaGonder(doc);
+    } else {
+      memoryStore.kullaniciDogrulamaAta(user.email);
+      const ham = memoryStore.kullaniciHamEmailIle(user.email);
+      if (ham) await dogrulamaMailiGuvenliGonder(ham);
+    }
+    return kullaniciDon(res, user, token, {
+      mesaj: 'Giriş başarılı. E-postanızı doğrulamanız gerekiyor.',
+      dogrulamaGerekli: true
+    });
   }
-  return epostaDogrulanmadi(res, user.email, 'E-posta doğrulanmamış. Gelen kutunuzdaki kodu girin.');
+  return kullaniciDon(res, user, token);
 }
 
 router.post('/satici-kayit', async (req, res) => {
@@ -183,14 +198,15 @@ router.post('/giris', async (req, res) => {
         if (!user || !(await user.sifreKontrol(sifre))) {
           return res.status(401).json({ mesaj: 'E-posta veya şifre hatalı.', kod: 'GIRIS_HATALI' });
         }
-        return girisOncesiDogrulama(user, res, () => kullaniciDon(res, user, tokenOlustur(user._id)));
+        return girisYanit(res, user);
       } catch (err) {
-        console.error('[Demo] Mongo giris hatasi, bellek modu:', err.message);
+        console.error('[Demo] Mongo giris hatasi:', err.message);
+        return res.status(500).json({ mesaj: 'Giriş yapılamadı.', kod: 'SUNUCU' });
       }
     }
 
     const user = await memoryStore.kullaniciGiris(email, sifre);
-    return girisOncesiDogrulama(user, res, () => kullaniciDon(res, user, tokenOlustur(user._id)));
+    return girisYanit(res, user);
   } catch (err) {
     console.error('[Demo] giris hatasi:', err.message);
     res.status(err.status || 500).json({
@@ -293,24 +309,14 @@ async function sosyalGiris(req, res, { email, ad, soyad, googleId, appleId }) {
         if (appleId && !user.appleId) user.appleId = appleId;
         await user.save();
       }
-      if (yeniHesap || !epostaDogrulandiMi(user)) {
-        await dogrulamaGonder(user);
-        return epostaDogrulanmadi(res, user.email, 'Doğrulama kodu e-postanıza gönderildi (veya «Kodu yeniden gönder» ile tekrar deneyin).');
-      }
-      return kullaniciDon(res, user, tokenOlustur(user._id));
+      return girisYanit(res, user);
     } catch (err) {
       console.error('[Demo] sosyal giris mongo:', err.message);
     }
   }
 
   const user = await memoryStore.kullaniciBulVeyaOlustur({ email, ad, soyad, googleId, appleId });
-  if (!epostaDogrulandiMi(user)) {
-    memoryStore.kullaniciDogrulamaAta(user.email);
-    const u = memoryStore.kullaniciEmailIle(user.email);
-    if (u) await dogrulamaMailiGuvenliGonder(memoryStore.kullaniciHamEmailIle(user.email));
-    return epostaDogrulanmadi(res, user.email, 'Doğrulama kodu e-postanıza gönderildi (veya «Kodu yeniden gönder» ile tekrar deneyin).');
-  }
-  kullaniciDon(res, user, tokenOlustur(user._id));
+  return girisYanit(res, user);
 }
 
 router.post('/google', async (req, res) => {
@@ -339,7 +345,7 @@ router.post('/apple', async (req, res) => {
 
 router.get('/profil', authZorunlu, (req, res) => res.json(req.user));
 
-router.put('/profil', authZorunlu, async (req, res) => {
+router.put('/profil', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     if (!dbBagli() || memoryStore.isMemoryUser(req.user._id)) {
       return res.status(503).json({ mesaj: 'Profil güncelleme geçici olarak kullanılamıyor.' });
@@ -352,7 +358,7 @@ router.put('/profil', authZorunlu, async (req, res) => {
   }
 });
 
-router.put('/email', authZorunlu, async (req, res) => {
+router.put('/email', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const { email, sifre } = req.body;
     const user = await User.findById(req.user._id);
@@ -369,7 +375,7 @@ router.put('/email', authZorunlu, async (req, res) => {
   }
 });
 
-router.put('/telefon', authZorunlu, async (req, res) => {
+router.put('/telefon', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(req.user._id, { telefon: req.body.telefon }, { new: true }).select('-sifre');
     res.json(user);
@@ -378,7 +384,7 @@ router.put('/telefon', authZorunlu, async (req, res) => {
   }
 });
 
-router.delete('/telefon', authZorunlu, async (req, res) => {
+router.delete('/telefon', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(req.user._id, { telefon: '' }, { new: true }).select('-sifre');
     res.json(user);
@@ -387,7 +393,7 @@ router.delete('/telefon', authZorunlu, async (req, res) => {
   }
 });
 
-router.put('/sifre', authZorunlu, async (req, res) => {
+router.put('/sifre', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const { eskiSifre, yeniSifre } = req.body;
     const user = await User.findById(req.user._id);
@@ -400,7 +406,7 @@ router.put('/sifre', authZorunlu, async (req, res) => {
   }
 });
 
-router.delete('/hesap', authZorunlu, async (req, res) => {
+router.delete('/hesap', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     await Order.deleteMany({ kullanici: req.user._id });
     await User.findByIdAndDelete(req.user._id);
@@ -410,12 +416,12 @@ router.delete('/hesap', authZorunlu, async (req, res) => {
   }
 });
 
-router.get('/adresler', authZorunlu, async (req, res) => {
+router.get('/adresler', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   const user = await User.findById(req.user._id).select('adresler');
   res.json(user.adresler || []);
 });
 
-router.post('/adresler', authZorunlu, async (req, res) => {
+router.post('/adresler', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (req.body.varsayilan) user.adresler.forEach((a) => { a.varsayilan = false; });
@@ -427,7 +433,7 @@ router.post('/adresler', authZorunlu, async (req, res) => {
   }
 });
 
-router.put('/adresler/:id', authZorunlu, async (req, res) => {
+router.put('/adresler/:id', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     const adres = user.adresler.id(req.params.id);
@@ -441,7 +447,7 @@ router.put('/adresler/:id', authZorunlu, async (req, res) => {
   }
 });
 
-router.delete('/adresler/:id', authZorunlu, async (req, res) => {
+router.delete('/adresler/:id', authZorunlu, epostaDogrulandiZorunlu, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     user.adresler.pull(req.params.id);

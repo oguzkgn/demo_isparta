@@ -10,6 +10,20 @@ function tokenOlustur(userId) {
   return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: '7d' });
 }
 
+async function kullaniciYukle(decoded) {
+  if (dbBagli() && !memoryStore.isMemoryUser(decoded.id)) {
+    const user = await User.findById(decoded.id).select('-sifre -emailDogrulamaKodu -emailDogrulamaSon');
+    if (user) return { user, memoryMode: false };
+  }
+
+  await memoryStore.ensureInit();
+  const memUser = memoryStore.kullaniciGetir(decoded.id);
+  if (memUser) return { user: memUser, memoryMode: true };
+
+  return null;
+}
+
+/** Geçerli JWT — e-posta doğrulaması gerekmez (profil okuma, doğrulama sayfası) */
 async function authZorunlu(req, res, next) {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {
@@ -17,42 +31,31 @@ async function authZorunlu(req, res, next) {
   }
   try {
     const decoded = jwt.verify(header.slice(7), JWT_SECRET);
-
-    if (dbBagli() && !memoryStore.isMemoryUser(decoded.id)) {
-      const user = await User.findById(decoded.id).select('-sifre -emailDogrulamaKodu -emailDogrulamaSon');
-      if (user) {
-        req.user = user;
-        req.memoryMode = false;
-        if (!epostaDogrulandiMi(user)) {
-          return res.status(403).json({
-            mesaj: 'E-posta doğrulanmadan işlem yapılamaz.',
-            kod: 'EPOSTA_DOGRULANMADI',
-            email: user.email
-          });
-        }
-        return next();
-      }
+    const kayit = await kullaniciYukle(decoded);
+    if (!kayit) {
+      return res.status(401).json({ mesaj: 'Oturum geçersiz.' });
     }
-
-    await memoryStore.ensureInit();
-    const memUser = memoryStore.kullaniciGetir(decoded.id);
-    if (memUser) {
-      req.user = memUser;
-      req.memoryMode = true;
-      if (!epostaDogrulandiMi(memUser)) {
-        return res.status(403).json({
-          mesaj: 'E-posta doğrulanmadan işlem yapılamaz.',
-          kod: 'EPOSTA_DOGRULANMADI',
-          email: memUser.email
-        });
-      }
-      return next();
-    }
-
-    return res.status(401).json({ mesaj: 'Oturum geçersiz.' });
+    req.user = kayit.user;
+    req.memoryMode = kayit.memoryMode;
+    return next();
   } catch {
-    res.status(401).json({ mesaj: 'Oturum süresi dolmuş.' });
+    return res.status(401).json({ mesaj: 'Oturum süresi dolmuş.' });
   }
+}
+
+/** Sepet, sipariş vb. — e-posta doğrulanmış olmalı */
+function epostaDogrulandiZorunlu(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ mesaj: 'Giriş yapmanız gerekiyor.' });
+  }
+  if (!epostaDogrulandiMi(req.user)) {
+    return res.status(403).json({
+      mesaj: 'E-posta doğrulanmadan bu işlem yapılamaz.',
+      kod: 'EPOSTA_DOGRULANMADI',
+      email: req.user.email
+    });
+  }
+  return next();
 }
 
 function rolZorunlu(...roller) {
@@ -64,4 +67,10 @@ function rolZorunlu(...roller) {
   };
 }
 
-module.exports = { authZorunlu, rolZorunlu, tokenOlustur, JWT_SECRET };
+module.exports = {
+  authZorunlu,
+  epostaDogrulandiZorunlu,
+  rolZorunlu,
+  tokenOlustur,
+  JWT_SECRET
+};
