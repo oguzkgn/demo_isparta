@@ -16,6 +16,7 @@ import SellerPanelPage from './pages/SellerPanelPage';
 import SellerLoginPage from './pages/SellerLoginPage';
 import AdminReviewsPage from './pages/AdminReviewsPage';
 import EmailVerifyPage from './pages/EmailVerifyPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ApiWarmup from './components/ApiWarmup';
 import AnimatedBackground from './components/AnimatedBackground';
 import './App.css';
@@ -23,7 +24,7 @@ import './App.css';
 function AppRoutes() {
   const location = useLocation();
   const saticiSayfasi = location.pathname.startsWith('/satici');
-  const authSayfasi = ['/giris', '/kayit', '/eposta-dogrula'].includes(location.pathname);
+  const authSayfasi = ['/giris', '/kayit', '/eposta-dogrula', '/sifremi-unuttum'].includes(location.pathname);
   const [arama, setArama] = useState('');
   const [kategori, setKategori] = useState('');
   const [konum, setKonum] = useState('');
@@ -39,6 +40,7 @@ function AppRoutes() {
         <Route path="/giris" element={<LoginPage />} />
         <Route path="/kayit" element={<RegisterPage />} />
         <Route path="/eposta-dogrula" element={<EmailVerifyPage />} />
+        <Route path="/sifremi-unuttum" element={<ForgotPasswordPage />} />
         <Route path="/profil" element={<ProfilePage {...shared} />} />
         <Route path="/favoriler" element={<FavoritesPage {...shared} />} />
         <Route path="/siparisler" element={<OrdersPageWrapper {...shared} />} />

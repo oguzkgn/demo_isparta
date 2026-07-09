@@ -139,8 +139,18 @@ async function kullaniciGiris(email, sifre) {
   if (!user || !(await bcrypt.compare(sifre, user.sifreHash))) {
     const err = new Error('E-posta veya şifre hatalı.');
     err.status = 401;
+    err.user = user || null;
     throw err;
   }
+  return sanitizeUser(user);
+}
+
+async function kullaniciSifreGuncelle(email, yeniSifre) {
+  await ensureInit();
+  const user = kullaniciHamEmailIle(email);
+  if (!user) return null;
+  user.sifreHash = await bcrypt.hash(yeniSifre, 10);
+  users.set(user._id, user);
   return sanitizeUser(user);
 }
 
@@ -418,6 +428,7 @@ module.exports = {
   markalarGetir,
   kullaniciKayit,
   kullaniciGiris,
+  kullaniciSifreGuncelle,
   kullaniciBulVeyaOlustur,
   kullaniciGetir,
   kullaniciEmailIle,

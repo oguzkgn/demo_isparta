@@ -113,7 +113,9 @@ async function dogrulamaMailiGonder(kullanici) {
     `Doğrulama sayfası: ${link}`,
     '',
     'Kod 15 dakika geçerlidir. Bu kodu kimseyle paylaşmayın.',
-    'Bu isteği siz yapmadıysanız e-postayı yok sayın.'
+    'Bu isteği siz yapmadıysanız e-postayı yok sayın.',
+    '',
+    'Gönderen: demo Isparta (godswhip540@gmail.com)'
   ].join('\n');
 
   await epostaGonder({

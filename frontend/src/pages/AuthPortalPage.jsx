@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { registerSeller, prepareSeller } from '../api/client';
 import { kayitFormDogrula, apiHataMesaji } from '../utils/apiError';
@@ -131,6 +131,11 @@ export default function AuthPortalPage() {
         setHatalar([apiHataMesaji(err, 'Doğrulama e-postası gönderilemedi. Kayıt tamamlanamadı.')]);
         return;
       }
+      if (!kayitModu && err.response?.data?.kod === 'GIRIS_HATALI' && err.response?.data?.dogrulamaGonderildi) {
+        const ep = err.response.data.email || form.email;
+        navigate(`/sifremi-unuttum?email=${encodeURIComponent(ep)}&kodGonderildi=1&portal=${portal}`, { replace: true });
+        return;
+      }
       const mesaj = apiHataMesaji(err, kayitModu ? 'Kayıt başarısız.' : 'Giriş başarısız.');
       if (kayitModu) setHatalar([mesaj]);
       else setHata(mesaj);
@@ -227,6 +232,11 @@ export default function AuthPortalPage() {
             )}
             <label>E-posta<input type="email" name="email" value={form.email} onChange={handleChange} required autoComplete="email" /></label>
             <label>Şifre<input type="password" name="sifre" value={form.sifre} onChange={handleChange} required minLength={6} autoComplete={kayitModu ? 'new-password' : 'current-password'} /></label>
+            {!kayitModu && (
+              <p className="auth-alt" style={{ marginTop: '-0.25rem', textAlign: 'right' }}>
+                <Link to={`/sifremi-unuttum?portal=${portal}${form.email ? `&email=${encodeURIComponent(form.email)}` : ''}`}>Şifremi unuttum</Link>
+              </p>
+            )}
             {kayitModu && (
               <>
                 <label>Telefon<input name="telefon" value={form.telefon} onChange={handleChange} placeholder="05xx xxx xx xx" /></label>
