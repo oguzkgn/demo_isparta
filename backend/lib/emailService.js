@@ -98,6 +98,42 @@ async function epostaGonder({ to, konu, metin, html }) {
   }
 }
 
+async function sifreSifirlamaMailiGonder(kullanici) {
+  const kod = kullanici.emailDogrulamaKodu;
+  if (!kod) {
+    throw new Error('Sıfırlama kodu üretilemedi.');
+  }
+  const link = `${uygulamaUrl()}/sifremi-unuttum?email=${encodeURIComponent(kullanici.email)}&kodGonderildi=1`;
+  const metin = [
+    'Merhaba,',
+    '',
+    'demo Isparta hesabınız için şifre sıfırlama kodunuz:',
+    kod,
+    '',
+    `Şifre sıfırlama sayfası: ${link}`,
+    '',
+    'Kod 15 dakika geçerlidir. Bu kodu kimseyle paylaşmayın.',
+    'Bu isteği siz yapmadıysanız e-postayı yok sayın.',
+    '',
+    'Gönderen: demo Isparta (godswhip540@gmail.com)'
+  ].join('\n');
+
+  await epostaGonder({
+    to: kullanici.email,
+    konu: 'demo Isparta — Şifre Sıfırlama Kodu',
+    metin,
+    html: `
+      <p>Merhaba,</p>
+      <p>demo Isparta hesabınız için şifre sıfırlama kodunuz:</p>
+      <p style="font-size:28px;font-weight:700;letter-spacing:4px">${kod}</p>
+      <p><a href="${link}">Şifre sıfırlama sayfasına git</a></p>
+      <p style="color:#666;font-size:13px">Kod 15 dakika geçerlidir. Bu kodu kimseyle paylaşmayın.</p>
+    `
+  });
+  console.log(`[Demo] Şifre sıfırlama e-postası gönderildi: ${kullanici.email}`);
+  return { gonderildi: true };
+}
+
 async function dogrulamaMailiGonder(kullanici) {
   const kod = kullanici.emailDogrulamaKodu;
   if (!kod) {
@@ -147,6 +183,7 @@ function dogrulamaMailiArkaPlanGonder(kullanici) {
 module.exports = {
   epostaGonder,
   dogrulamaMailiGonder,
+  sifreSifirlamaMailiGonder,
   dogrulamaMailiArkaPlanGonder,
   smtpYapilandirildiMi,
   uygulamaUrl,

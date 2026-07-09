@@ -1,5 +1,6 @@
 function kodUret() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  const crypto = require('crypto');
+  return String(crypto.randomInt(100000, 1000000));
 }
 
 function kodAta(hedef) {

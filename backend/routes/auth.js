@@ -6,7 +6,7 @@ const { dbBagli } = require('../lib/dbHelper');
 const memoryStore = require('../lib/memoryStore');
 const { kayitDogrula, girisDogrula } = require('../lib/validate');
 const { kodAta, epostaDogrulandiMi, kodDogrula, dogrulamaTamamla } = require('../lib/emailDogrulama');
-const { dogrulamaMailiGonder, dogrulamaMailiArkaPlanGonder } = require('../lib/emailService');
+const { dogrulamaMailiGonder, dogrulamaMailiArkaPlanGonder, sifreSifirlamaMailiGonder } = require('../lib/emailService');
 
 const router = express.Router();
 
@@ -89,6 +89,61 @@ async function kayitSonrasiDogrulama(res, { mongoId, email }) {
 
 async function mongoKullaniciBulEmail(email) {
   return User.findOne({ email: email.toLowerCase() });
+}
+
+async function kullaniciBulEmailIle(eposta) {
+  if (dbBagli()) {
+    const user = await mongoKullaniciBulEmail(eposta);
+    return user ? { tip: 'mongo', user } : null;
+  }
+  const ham = memoryStore.kullaniciHamEmailIle(eposta);
+  return ham ? { tip: 'memory', user: ham } : null;
+}
+
+function authHataOlustur(mesaj, status, kod) {
+  const err = new Error(mesaj);
+  err.status = status;
+  err.kod = kod;
+  return err;
+}
+
+async function sifremiUnuttumKoduGonder(email) {
+  const eposta = email?.toLowerCase?.()?.trim();
+  if (!eposta) {
+    throw authHataOlustur('E-posta gerekli.', 400, 'DOGRULAMA');
+  }
+
+  const bulunan = await kullaniciBulEmailIle(eposta);
+  if (!bulunan) {
+    throw authHataOlustur('Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı.', 404, 'KULLANICI_BULUNAMADI');
+  }
+
+  let mailHedef;
+  if (bulunan.tip === 'mongo') {
+    await dogrulamaKoduKaydet(bulunan.user);
+    mailHedef = bulunan.user;
+  } else {
+    memoryStore.kullaniciDogrulamaAta(eposta);
+    mailHedef = memoryStore.kullaniciHamEmailIle(eposta);
+    if (!mailHedef) {
+      throw authHataOlustur('Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı.', 404, 'KULLANICI_BULUNAMADI');
+    }
+  }
+
+  try {
+    await sifreSifirlamaMailiGonder(mailHedef);
+  } catch (mailErr) {
+    console.error('[Demo] sifremi-unuttum mail hatası:', mailErr.message || mailErr);
+    throw authHataOlustur(
+      mailErr.kod === 'SMTP_YOK'
+        ? 'E-posta servisi yapılandırılmamış (SMTP).'
+        : 'Doğrulama e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin.',
+      500,
+      mailErr.kod === 'SMTP_YOK' ? 'SMTP_YOK' : 'MAIL_GONDERILEMEDI'
+    );
+  }
+
+  return { email: eposta };
 }
 
 async function epostaIleDogrulamaKoduGonder(email) {
@@ -262,16 +317,19 @@ router.post('/giris', async (req, res) => {
 router.post('/sifremi-unuttum', async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email?.trim()) {
-      return res.status(400).json({ mesaj: 'E-posta gerekli.', kod: 'DOGRULAMA' });
-    }
-    await epostaIleDogrulamaKoduGonder(email);
+    const sonuc = await sifremiUnuttumKoduGonder(email);
     return res.json({
-      mesaj: 'Kayıtlı e-posta ise doğrulama kodu gönderildi. Gelen kutusu ve spam klasörünü kontrol edin.',
-      email: email.toLowerCase().trim()
+      mesaj: 'Şifre sıfırlama kodu e-postanıza gönderildi. Gelen kutusu ve spam klasörünü kontrol edin.',
+      email: sonuc.email,
+      kod: 'KOD_GONDERILDI'
     });
-  } catch {
-    return res.status(500).json({ mesaj: 'Kod gönderilemedi.', kod: 'SUNUCU' });
+  } catch (err) {
+    console.error('[Demo] sifremi-unuttum:', err.message);
+    const status = err.status || 500;
+    return res.status(status).json({
+      mesaj: err.message || 'Kod gönderilemedi.',
+      kod: err.kod || (status === 404 ? 'KULLANICI_BULUNAMADI' : 'SUNUCU')
+    });
   }
 });
 
@@ -285,32 +343,40 @@ router.post('/sifre-sifirla', async (req, res) => {
       return res.status(400).json({ mesaj: 'Yeni şifre en az 6 karakter olmalı.', kod: 'DOGRULAMA' });
     }
 
-    if (dbBagli()) {
+    const eposta = email.toLowerCase().trim();
+    const bulunan = await kullaniciBulEmailIle(eposta);
+    if (!bulunan) {
+      return res.status(404).json({ mesaj: 'Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı.', kod: 'KULLANICI_BULUNAMADI' });
+    }
+
+    if (bulunan.tip === 'mongo') {
       try {
-        const user = await mongoKullaniciBulEmail(email);
-        if (!user || !kodDogrula(user, kod)) {
+        const user = bulunan.user;
+        if (!kodDogrula(user, kod)) {
           return res.status(400).json({ mesaj: 'Geçersiz veya süresi dolmuş kod.', kod: 'KOD_HATALI' });
         }
         user.sifre = yeniSifre;
         dogrulamaTamamla(user);
         await user.save();
-        return kullaniciDon(res, user, tokenOlustur(user._id), { mesaj: 'Şifreniz güncellendi.' });
+        return kullaniciDon(res, user, tokenOlustur(user._id), { mesaj: 'Şifreniz güncellendi.', kod: 'SIFRE_GUNCELLENDI' });
       } catch (err) {
         console.error('[Demo] Mongo sifre-sifirla:', err.message);
+        return res.status(500).json({ mesaj: 'Şifre sıfırlanamadı.', kod: 'SUNUCU' });
       }
     }
 
-    const ham = memoryStore.kullaniciHamEmailIle(email);
-    if (!ham || !kodDogrula(ham, kod)) {
+    const ham = bulunan.user;
+    if (!kodDogrula(ham, kod)) {
       return res.status(400).json({ mesaj: 'Geçersiz veya süresi dolmuş kod.', kod: 'KOD_HATALI' });
     }
     dogrulamaTamamla(ham);
-    const user = await memoryStore.kullaniciSifreGuncelle(email, yeniSifre);
+    const user = await memoryStore.kullaniciSifreGuncelle(eposta, yeniSifre);
     if (!user) {
-      return res.status(400).json({ mesaj: 'Şifre güncellenemedi.', kod: 'SUNUCU' });
+      return res.status(500).json({ mesaj: 'Şifre güncellenemedi.', kod: 'SUNUCU' });
     }
-    return kullaniciDon(res, user, tokenOlustur(user._id), { mesaj: 'Şifreniz güncellendi.' });
-  } catch {
+    return kullaniciDon(res, user, tokenOlustur(user._id), { mesaj: 'Şifreniz güncellendi.', kod: 'SIFRE_GUNCELLENDI' });
+  } catch (err) {
+    console.error('[Demo] sifre-sifirla:', err.message);
     return res.status(500).json({ mesaj: 'Şifre sıfırlanamadı.', kod: 'SUNUCU' });
   }
 });
