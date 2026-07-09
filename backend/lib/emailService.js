@@ -2,6 +2,8 @@ const nodemailer = require('nodemailer');
 
 let transporter;
 
+const SMTP_TIMEOUT_MS = 12000;
+
 function smtpYapilandirildiMi() {
   return Boolean(
     process.env.SMTP_HOST &&
@@ -51,7 +53,10 @@ function transporterAl() {
     host: String(process.env.SMTP_HOST).trim(),
     port,
     secure,
-    auth: smtpKimlik()
+    auth: smtpKimlik(),
+    connectionTimeout: SMTP_TIMEOUT_MS,
+    greetingTimeout: SMTP_TIMEOUT_MS,
+    socketTimeout: SMTP_TIMEOUT_MS
   });
 
   console.log(`[Demo] SMTP: ${process.env.SMTP_HOST}:${port} secure=${secure}`);
@@ -70,14 +75,21 @@ async function epostaGonder({ to, konu, metin, html }) {
     throw hata;
   }
 
+  const zamanAsimi = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('SMTP zaman aşımı')), SMTP_TIMEOUT_MS);
+  });
+
   try {
-    await transport.sendMail({
-      from: fromAdresi(),
-      to,
-      subject: konu,
-      text: metin,
-      html: html || metin.replace(/\n/g, '<br>')
-    });
+    await Promise.race([
+      transport.sendMail({
+        from: fromAdresi(),
+        to,
+        subject: konu,
+        text: metin,
+        html: html || metin.replace(/\n/g, '<br>')
+      }),
+      zamanAsimi
+    ]);
     return { gonderildi: true };
   } catch (error) {
     transporterSifirla();
@@ -120,9 +132,20 @@ async function dogrulamaMailiGonder(kullanici) {
   return { gonderildi: true };
 }
 
+/** HTTP yanıtını bekletmeden arka planda gönder */
+function dogrulamaMailiArkaPlanGonder(kullanici) {
+  if (!kullanici?.email) return;
+  setImmediate(() => {
+    dogrulamaMailiGonder(kullanici).catch((err) => {
+      console.error('[Demo] Arka plan mail hatası:', err.message || err);
+    });
+  });
+}
+
 module.exports = {
   epostaGonder,
   dogrulamaMailiGonder,
+  dogrulamaMailiArkaPlanGonder,
   smtpYapilandirildiMi,
   uygulamaUrl,
   transporterSifirla

@@ -30,6 +30,8 @@ export default function AuthPortalPage() {
 
   useEffect(() => {
     if (yukleniyor || !kullanici) return;
+    // Giriş/kayıt sayfasında form kullanılabilsin — otomatik yönlendirme yapma
+    if (pathname === '/giris' || pathname === '/kayit') return;
     if (!epostaDogrulandiMi(kullanici)) {
       const p = kullanici.rol === 'satici' ? 'satici' : 'musteri';
       navigate(epostaDogrulamaYolu(kullanici.email, p), { replace: true });
@@ -40,7 +42,7 @@ export default function AuthPortalPage() {
     } else {
       navigate('/', { replace: true });
     }
-  }, [yukleniyor, kullanici, navigate]);
+  }, [yukleniyor, kullanici, navigate, pathname]);
 
   const dogrulamaYonlendir = (eposta) => {
     sessionStorage.setItem('authPortal', portal);

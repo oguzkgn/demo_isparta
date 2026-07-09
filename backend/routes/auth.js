@@ -6,7 +6,7 @@ const { dbBagli } = require('../lib/dbHelper');
 const memoryStore = require('../lib/memoryStore');
 const { kayitDogrula, girisDogrula } = require('../lib/validate');
 const { kodAta, epostaDogrulandiMi, kodDogrula, dogrulamaTamamla } = require('../lib/emailDogrulama');
-const { dogrulamaMailiGonder } = require('../lib/emailService');
+const { dogrulamaMailiGonder, dogrulamaMailiArkaPlanGonder } = require('../lib/emailService');
 
 const router = express.Router();
 
@@ -28,7 +28,11 @@ async function dogrulamaKoduKaydet(userDoc) {
   return userDoc;
 }
 
-async function dogrulamaMailiGuvenliGonder(userDoc) {
+async function dogrulamaMailiGuvenliGonder(userDoc, arkaPlan = false) {
+  if (arkaPlan) {
+    dogrulamaMailiArkaPlanGonder(userDoc);
+    return true;
+  }
   try {
     await dogrulamaMailiGonder(userDoc);
     return true;
@@ -38,15 +42,13 @@ async function dogrulamaMailiGuvenliGonder(userDoc) {
   }
 }
 
-async function dogrulamaGonder(userDoc) {
+async function dogrulamaGonder(userDoc, arkaPlan = false) {
   await dogrulamaKoduKaydet(userDoc);
-  await dogrulamaMailiGuvenliGonder(userDoc);
-  return userDoc;
+  return dogrulamaMailiGuvenliGonder(userDoc, arkaPlan);
 }
 
 async function kayitSonrasiDogrulama(res, { mongoId, email }) {
   try {
-    let mailGonderildi = false;
     let kullanici = null;
     let token = null;
 
@@ -54,27 +56,25 @@ async function kayitSonrasiDogrulama(res, { mongoId, email }) {
       const user = await User.findById(mongoId);
       if (!user) throw new Error('Kullanıcı bulunamadı');
       await dogrulamaKoduKaydet(user);
-      mailGonderildi = await dogrulamaMailiGuvenliGonder(user);
+      dogrulamaMailiArkaPlanGonder(user);
       kullanici = user;
       token = tokenOlustur(user._id);
     } else {
       memoryStore.kullaniciDogrulamaAta(email);
       const ham = memoryStore.kullaniciHamEmailIle(email);
       if (!ham) throw new Error('Kullanıcı bulunamadı');
-      mailGonderildi = await dogrulamaMailiGuvenliGonder(ham);
+      dogrulamaMailiArkaPlanGonder(ham);
       kullanici = memoryStore.kullaniciEmailIle(email);
       token = tokenOlustur(ham._id);
     }
 
     return res.status(201).json({
-      mesaj: mailGonderildi
-        ? 'Kayıt oluşturuldu. E-postanıza doğrulama kodu gönderildi.'
-        : 'Kayıt oluşturuldu. Doğrulama e-postası şu an gönderilemedi; «Kodu yeniden gönder» ile tekrar deneyin.',
+      mesaj: 'Kayıt oluşturuldu. Doğrulama kodu e-postanıza gönderiliyor; gelmezse «Kodu yeniden gönder» kullanın.',
       email,
       kullanici,
       token,
       emailDogrulandi: false,
-      mailGonderildi,
+      mailGonderildi: true,
       dogrulamaGerekli: true,
       islemKodu: 'EPOSTA_BEKLENIYOR'
     });
@@ -96,14 +96,14 @@ async function girisYanit(res, user) {
   if (!epostaDogrulandiMi(user)) {
     if (dbBagli() && user._id && !memoryStore.isMemoryUser(user._id)) {
       const doc = await User.findById(user._id);
-      if (doc) await dogrulamaGonder(doc);
+      if (doc) await dogrulamaGonder(doc, true);
     } else {
       memoryStore.kullaniciDogrulamaAta(user.email);
       const ham = memoryStore.kullaniciHamEmailIle(user.email);
-      if (ham) await dogrulamaMailiGuvenliGonder(ham);
+      if (ham) dogrulamaMailiArkaPlanGonder(ham);
     }
     return kullaniciDon(res, user, token, {
-      mesaj: 'Giriş başarılı. E-postanızı doğrulamanız gerekiyor.',
+      mesaj: 'Giriş başarılı. Doğrulama kodu e-postanıza gönderiliyor.',
       dogrulamaGerekli: true
     });
   }

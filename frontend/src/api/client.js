@@ -3,8 +3,13 @@ import { getApiBaseUrl } from '../constants/config';
 import { asArray } from '../utils/safe';
 
 const COLD_START_TIMEOUT = 90000;
+const AUTH_TIMEOUT = 30000;
 const MAX_RETRY = 3;
 const RETRY_DELAY_MS = 4000;
+
+function authIstegiMi(url = '') {
+  return url.includes('/api/auth/');
+}
 
 const api = axios.create({ timeout: COLD_START_TIMEOUT });
 
@@ -23,6 +28,10 @@ function bekle(ms) {
 
 api.interceptors.request.use((config) => {
   config.baseURL = getApiBaseUrl();
+  if (authIstegiMi(config.url)) {
+    config.timeout = AUTH_TIMEOUT;
+    config.__authIstek = true;
+  }
   const token = localStorage.getItem('demo-token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
@@ -32,7 +41,7 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const config = err.config;
-    if (config && yenidenDenenebilirMi(err)) {
+    if (config && yenidenDenenebilirMi(err) && !config.__authIstek) {
       config.__retryCount = config.__retryCount || 0;
       if (config.__retryCount < MAX_RETRY) {
         config.__retryCount += 1;
@@ -40,7 +49,7 @@ api.interceptors.response.use(
         return api(config);
       }
     }
-    if (err.response?.data?.kod === 'EPOSTA_DOGRULANMADI') {
+    if (err.response?.data?.kod === 'EPOSTA_DOGRULANMADI' && !authIstegiMi(err.config?.url)) {
       localStorage.removeItem('demo-token');
     }
     if (!err.response) {
