@@ -399,6 +399,15 @@ function kullaniciDogrulamaAta(email) {
   return sanitizeUser(user);
 }
 
+function kullaniciSifreSifirlamaKoduAta(email) {
+  const user = kullaniciHamEmailIle(email);
+  if (!user) return null;
+  const { sifreSifirlamaKoduAta } = require('./emailDogrulama');
+  sifreSifirlamaKoduAta(user);
+  users.set(user._id, user);
+  return sanitizeUser(user);
+}
+
 function kullaniciDogrula(email, kod) {
   const user = kullaniciHamEmailIle(email);
   if (!user) return null;
@@ -434,6 +443,7 @@ module.exports = {
   kullaniciEmailIle,
   kullaniciHamEmailIle,
   kullaniciDogrulamaAta,
+  kullaniciSifreSifirlamaKoduAta,
   kullaniciDogrula,
   kullaniciSilEmail,
   sepetGetir,

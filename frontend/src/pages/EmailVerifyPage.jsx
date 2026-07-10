@@ -15,6 +15,7 @@ export default function EmailVerifyPage() {
   const [hata, setHata] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
   const mailUyari = sessionStorage.getItem('mailGonderilemedi') === '1';
+  const kayitMesaji = sessionStorage.getItem('kayitMesaji') || '';
 
   useEffect(() => {
     const ep = searchParams.get('email');
@@ -53,7 +54,11 @@ export default function EmailVerifyPage() {
     setHata('');
     try {
       const r = await resendVerification(email);
-      setMesaj(r.mesaj || 'Kod yeniden gönderildi.');
+      if (r.mailGonderildi === false) {
+        setHata(r.mesaj || 'Kod oluşturuldu ancak e-posta gönderilemedi.');
+      } else {
+        setMesaj(r.mesaj || 'Kod yeniden gönderildi.');
+      }
     } catch (err) {
       setHata(err.response?.data?.mesaj || 'Kod gönderilemedi.');
     }
@@ -72,7 +77,7 @@ export default function EmailVerifyPage() {
             </p>
             {mailUyari && (
               <div className="auth-error">
-                E-posta gönderilemedi. SMTP ayarlarını kontrol edin veya «Kodu Yeniden Gönder»e tıklayın.
+                {kayitMesaji || 'E-posta gönderilemedi. SMTP ayarlarını kontrol edin veya «Kodu Yeniden Gönder»e tıklayın.'}
               </div>
             )}
             {mesaj && <div className="auth-success">{mesaj}</div>}

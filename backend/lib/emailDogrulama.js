@@ -1,5 +1,6 @@
+const crypto = require('crypto');
+
 function kodUret() {
-  const crypto = require('crypto');
   return String(crypto.randomInt(100000, 1000000));
 }
 
@@ -9,9 +10,19 @@ function kodAta(hedef) {
   hedef.emailDogrulandi = false;
 }
 
+/** Şifre sıfırlama — mevcut doğrulama durumunu bozmaz */
+function sifreSifirlamaKoduAta(hedef) {
+  hedef.emailDogrulamaKodu = kodUret();
+  hedef.emailDogrulamaSon = new Date(Date.now() + 15 * 60 * 1000);
+}
+
 function epostaDogrulandiMi(kullanici) {
   if (!kullanici) return false;
   if (kullanici.rol === 'admin') return true;
+  // Eski kayıtlar: alan hiç set edilmemişse doğrulanmış kabul et (geriye dönük uyum)
+  if (kullanici.emailDogrulandi === undefined || kullanici.emailDogrulandi === null) {
+    return true;
+  }
   return kullanici.emailDogrulandi === true;
 }
 
@@ -27,4 +38,11 @@ function dogrulamaTamamla(hedef) {
   hedef.emailDogrulamaSon = undefined;
 }
 
-module.exports = { kodUret, kodAta, epostaDogrulandiMi, kodDogrula, dogrulamaTamamla };
+module.exports = {
+  kodUret,
+  kodAta,
+  sifreSifirlamaKoduAta,
+  epostaDogrulandiMi,
+  kodDogrula,
+  dogrulamaTamamla
+};

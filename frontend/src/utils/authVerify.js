@@ -1,7 +1,10 @@
-/** E-posta doğrulaması tamamlandı mı (admin muaf) */
+/** E-posta doğrulaması tamamlandı mı (admin muaf, eski kayıtlar uyumlu) */
 export function epostaDogrulandiMi(kullanici) {
   if (!kullanici) return false;
   if (kullanici.rol === 'admin') return true;
+  if (kullanici.emailDogrulandi === undefined || kullanici.emailDogrulandi === null) {
+    return true;
+  }
   return kullanici.emailDogrulandi === true;
 }
 

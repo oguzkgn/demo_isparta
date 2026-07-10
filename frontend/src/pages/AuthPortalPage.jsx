@@ -100,8 +100,10 @@ export default function AuthPortalPage() {
     }
     if (sonuc?.mailGonderildi === false) {
       sessionStorage.setItem('mailGonderilemedi', '1');
+      sessionStorage.setItem('kayitMesaji', sonuc.mesaj || 'Kayıt başarılı ancak doğrulama e-postası gönderilemedi.');
     } else {
       sessionStorage.removeItem('mailGonderilemedi');
+      sessionStorage.removeItem('kayitMesaji');
     }
     navigate(`/eposta-dogrula?email=${encodeURIComponent(form.email)}&portal=${portal}`, { replace: true });
   };

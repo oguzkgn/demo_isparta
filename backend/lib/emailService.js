@@ -171,13 +171,21 @@ async function dogrulamaMailiGonder(kullanici) {
 }
 
 /** HTTP yanıtını bekletmeden arka planda gönder */
-function dogrulamaMailiArkaPlanGonder(kullanici) {
+function mailArkaPlanGonder(gonderFn, kullanici) {
   if (!kullanici?.email) return;
   setImmediate(() => {
-    dogrulamaMailiGonder(kullanici).catch((err) => {
+    gonderFn(kullanici).catch((err) => {
       console.error('[Demo] Arka plan mail hatası:', err.message || err);
     });
   });
+}
+
+function dogrulamaMailiArkaPlanGonder(kullanici) {
+  mailArkaPlanGonder(dogrulamaMailiGonder, kullanici);
+}
+
+function sifreSifirlamaMailiArkaPlanGonder(kullanici) {
+  mailArkaPlanGonder(sifreSifirlamaMailiGonder, kullanici);
 }
 
 module.exports = {
@@ -185,6 +193,7 @@ module.exports = {
   dogrulamaMailiGonder,
   sifreSifirlamaMailiGonder,
   dogrulamaMailiArkaPlanGonder,
+  sifreSifirlamaMailiArkaPlanGonder,
   smtpYapilandirildiMi,
   uygulamaUrl,
   transporterSifirla
