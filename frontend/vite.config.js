@@ -7,7 +7,7 @@ export default defineConfig({
     port: 3001,
     proxy: {
       '/api': {
-        target: process.env.VITE_DEV_API || 'https://demo-isparta.onrender.com',
+        target: process.env.VITE_DEV_API || 'https://demo-isparta-api.onrender.com',
         changeOrigin: true,
         secure: true
       }

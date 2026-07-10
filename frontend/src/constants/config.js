@@ -1,4 +1,4 @@
-const RENDER_API = 'https://demo-isparta.onrender.com';
+const RENDER_API = 'https://demo-isparta-api.onrender.com';
 
 /** Runtime API kökü — Vercel external rewrite POST desteklemediği için doğrudan Render kullanılır */
 export function getApiBaseUrl() {
