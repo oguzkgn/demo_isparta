@@ -2,7 +2,7 @@ const express = require('express');
 const User = require('../models/User');
 const Order = require('../models/Order');
 const { authZorunlu, epostaDogrulandiZorunlu, tokenOlustur } = require('../middleware/auth');
-const { dbBagli } = require('../lib/dbHelper');
+const { dbBagli, mongoBekleniyor } = require('../lib/dbHelper');
 const memoryStore = require('../lib/memoryStore');
 const { kayitDogrula, girisDogrula } = require('../lib/validate');
 const { kodAta, sifreSifirlamaKoduAta, epostaDogrulandiMi, kodDogrula, dogrulamaTamamla } = require('../lib/emailDogrulama');
@@ -15,6 +15,16 @@ const {
 const router = express.Router();
 
 const GIRIS_DB_TIMEOUT_MS = 12000;
+const GIRIS_BCRYPT_TIMEOUT_MS = 8000;
+
+async function sifreKontrolZamanli(user, sifre) {
+  return Promise.race([
+    user.sifreKontrol(sifre),
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Şifre doğrulama zaman aşımı')), GIRIS_BCRYPT_TIMEOUT_MS);
+    })
+  ]);
+}
 
 function kullaniciDon(res, user, token, extra = {}) {
   const kullanici = user?.toJSON ? user.toJSON() : user;
@@ -374,6 +384,14 @@ router.post('/giris', async (req, res) => {
 
     const eposta = email.toLowerCase().trim();
 
+    if (mongoBekleniyor()) {
+      return res.status(503).json({
+        mesaj: 'Veritabanı bağlantısı kuruluyor. Lütfen 10 saniye bekleyip tekrar deneyin.',
+        message: 'Database connecting',
+        kod: 'DB_BAGLANIYOR'
+      });
+    }
+
     if (dbBagli()) {
       let user;
       try {
@@ -398,7 +416,7 @@ router.post('/giris', async (req, res) => {
 
       let sifreDogru = false;
       try {
-        sifreDogru = await user.sifreKontrol(sifre);
+        sifreDogru = await sifreKontrolZamanli(user, sifre);
       } catch (bcryptErr) {
         console.error('[Demo] bcrypt compare:', bcryptErr.message);
         return res.status(500).json({

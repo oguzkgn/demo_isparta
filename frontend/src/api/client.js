@@ -3,7 +3,7 @@ import { getApiBaseUrl } from '../constants/config';
 import { asArray } from '../utils/safe';
 
 const COLD_START_TIMEOUT = 90000;
-const AUTH_TIMEOUT = 30000;
+const AUTH_TIMEOUT = 60000;
 const MAX_RETRY = 3;
 const RETRY_DELAY_MS = 4000;
 
