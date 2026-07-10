@@ -14,9 +14,21 @@ const {
 
 const router = express.Router();
 
+const GIRIS_DB_TIMEOUT_MS = 12000;
+
 function kullaniciDon(res, user, token, extra = {}) {
   const kullanici = user?.toJSON ? user.toJSON() : user;
-  res.json({ kullanici, token, ...extra });
+  return res.json({ kullanici, token, ...extra });
+}
+
+function sunucuHataYanit(res, error, status = 500) {
+  if (res.headersSent) return;
+  return res.status(status).json({
+    mesaj: status === 401 ? (error?.message || 'Giriş başarısız.') : 'Sunucu hatası',
+    message: status === 401 ? (error?.message || 'Giriş başarısız.') : 'Sunucu hatası',
+    error: error?.message || String(error),
+    kod: status === 401 ? 'GIRIS_HATALI' : 'SUNUCU'
+  });
 }
 
 function epostaDogrulanmadi(res, email, mesaj) {
@@ -107,7 +119,33 @@ async function kayitSonrasiDogrulama(res, { mongoId, email }) {
 }
 
 async function mongoKullaniciBulEmail(email) {
-  return User.findOne({ email: email.toLowerCase() });
+  return User.findOne({ email: email.toLowerCase() }).maxTimeMS(GIRIS_DB_TIMEOUT_MS);
+}
+
+async function mongoKullaniciBulEmailZamanli(email) {
+  const eposta = email.toLowerCase().trim();
+  return Promise.race([
+    mongoKullaniciBulEmail(eposta),
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Veritabanı zaman aşımı')), GIRIS_DB_TIMEOUT_MS);
+    })
+  ]);
+}
+
+async function girisSonrasiDogrulamaMailiGonder(user) {
+  if (dbBagli() && user?._id && !memoryStore.isMemoryUser(user._id)) {
+    const doc = await User.findById(user._id).maxTimeMS(GIRIS_DB_TIMEOUT_MS);
+    if (doc) {
+      await dogrulamaKoduKaydet(doc);
+      if (smtpYapilandirildiMi()) dogrulamaMailiArkaPlanGonder(doc);
+    }
+    return;
+  }
+  if (user?.email) {
+    memoryStore.kullaniciDogrulamaAta(user.email);
+    const ham = memoryStore.kullaniciHamEmailIle(user.email);
+    if (ham && smtpYapilandirildiMi()) dogrulamaMailiArkaPlanGonder(ham);
+  }
 }
 
 async function kullaniciBulEmailIle(eposta) {
@@ -178,47 +216,72 @@ async function epostaIleSifreSifirlamaKoduGonder(email) {
 
 function girisHataliYanit(res, user) {
   if (user) {
-    epostaIleSifreSifirlamaKoduGonder(user.email).catch(() => {});
+    setImmediate(() => {
+      epostaIleSifreSifirlamaKoduGonder(user.email).catch(() => {});
+    });
     return res.status(401).json({
       mesaj: 'Şifre hatalı. Doğrulama kodu e-postanıza gönderildi. Şifremi unuttum veya doğrulama sayfasını kullanın.',
+      message: 'Şifre hatalı.',
       kod: 'GIRIS_HATALI',
       email: user.email,
       dogrulamaGonderildi: true
     });
   }
-  return res.status(401).json({ mesaj: 'E-posta veya şifre hatalı.', kod: 'GIRIS_HATALI' });
+  return res.status(401).json({
+    mesaj: 'E-posta veya şifre hatalı.',
+    message: 'E-posta veya şifre hatalı.',
+    kod: 'GIRIS_HATALI'
+  });
 }
 
 async function girisYanit(res, user) {
   try {
-    const token = tokenOlustur(user._id);
+    if (!user?._id) {
+      return res.status(500).json({
+        mesaj: 'Sunucu hatası',
+        message: 'Sunucu hatası',
+        error: 'Kullanıcı kimliği bulunamadı',
+        kod: 'SUNUCU'
+      });
+    }
 
-    if (!epostaDogrulandiMi(user)) {
-      try {
-        if (dbBagli() && user._id && !memoryStore.isMemoryUser(user._id)) {
-          const doc = await User.findById(user._id);
-          if (doc) {
-            await dogrulamaKoduKaydet(doc);
-            if (smtpYapilandirildiMi()) dogrulamaMailiArkaPlanGonder(doc);
-          }
-        } else {
-          memoryStore.kullaniciDogrulamaAta(user.email);
-          const ham = memoryStore.kullaniciHamEmailIle(user.email);
-          if (ham && smtpYapilandirildiMi()) dogrulamaMailiArkaPlanGonder(ham);
-        }
-      } catch (mailErr) {
-        console.error('[Demo] Giriş sonrası mail:', mailErr.message);
-      }
-      return kullaniciDon(res, user, token, {
+    const token = tokenOlustur(user._id);
+    const kullanici = user?.toJSON ? user.toJSON() : { ...user };
+    delete kullanici.sifre;
+    delete kullanici.sifreHash;
+
+    const dogrulanmamis = !epostaDogrulandiMi(user);
+
+    if (dogrulanmamis) {
+      setImmediate(() => {
+        girisSonrasiDogrulamaMailiGonder(user).catch((err) => {
+          console.error('[Demo] Giriş sonrası doğrulama:', err.message);
+        });
+      });
+      return res.status(200).json({
+        kullanici,
+        token,
         mesaj: 'Lütfen önce e-posta adresinizi doğrulayın.',
+        message: 'Lütfen önce e-posta adresinizi doğrulayın.',
         dogrulamaGerekli: true,
         kod: 'EPOSTA_DOGRULANMADI'
       });
     }
-    return kullaniciDon(res, user, token);
-  } catch (err) {
-    console.error('[Demo] girisYanit:', err.message);
-    return res.status(500).json({ mesaj: 'Giriş yanıtı oluşturulamadı.', kod: 'SUNUCU' });
+
+    return res.status(200).json({
+      kullanici,
+      token,
+      mesaj: 'Giriş başarılı.',
+      message: 'Giriş başarılı.'
+    });
+  } catch (error) {
+    console.error('[Demo] girisYanit:', error.message);
+    return res.status(500).json({
+      mesaj: 'Sunucu hatası',
+      message: 'Sunucu hatası',
+      error: error.message,
+      kod: 'SUNUCU'
+    });
   }
 }
 
@@ -301,40 +364,77 @@ router.post('/giris', async (req, res) => {
     const { email, sifre } = req.body;
     const hatalar = girisDogrula({ email, sifre });
     if (hatalar.length) {
-      return res.status(400).json({ mesaj: hatalar[0], hatalar, kod: 'DOGRULAMA' });
+      return res.status(400).json({
+        mesaj: hatalar[0],
+        message: hatalar[0],
+        hatalar,
+        kod: 'DOGRULAMA'
+      });
     }
 
+    const eposta = email.toLowerCase().trim();
+
     if (dbBagli()) {
+      let user;
       try {
-        const user = await User.findOne({ email: email.toLowerCase() });
-        if (!user) {
-          return res.status(401).json({ mesaj: 'E-posta veya şifre hatalı.', kod: 'GIRIS_HATALI' });
-        }
-        if (!(await user.sifreKontrol(sifre))) {
-          return girisHataliYanit(res, user);
-        }
-        return girisYanit(res, user);
-      } catch (err) {
-        console.error('[Demo] Mongo giris hatasi:', err.message);
-        return res.status(500).json({ mesaj: 'Giriş yapılamadı.', kod: 'SUNUCU' });
+        user = await mongoKullaniciBulEmailZamanli(eposta);
+      } catch (dbErr) {
+        console.error('[Demo] Mongo giris sorgu:', dbErr.message);
+        return res.status(500).json({
+          mesaj: 'Sunucu hatası',
+          message: 'Sunucu hatası',
+          error: dbErr.message,
+          kod: 'SUNUCU'
+        });
       }
+
+      if (!user) {
+        return res.status(401).json({
+          mesaj: 'E-posta veya şifre hatalı.',
+          message: 'E-posta veya şifre hatalı.',
+          kod: 'GIRIS_HATALI'
+        });
+      }
+
+      let sifreDogru = false;
+      try {
+        sifreDogru = await user.sifreKontrol(sifre);
+      } catch (bcryptErr) {
+        console.error('[Demo] bcrypt compare:', bcryptErr.message);
+        return res.status(500).json({
+          mesaj: 'Sunucu hatası',
+          message: 'Sunucu hatası',
+          error: bcryptErr.message,
+          kod: 'SUNUCU'
+        });
+      }
+
+      if (!sifreDogru) {
+        return girisHataliYanit(res, user);
+      }
+
+      return await girisYanit(res, user);
     }
 
     try {
       const user = await memoryStore.kullaniciGiris(email, sifre);
-      return girisYanit(res, user);
+      return await girisYanit(res, user);
     } catch (err) {
       if (err.status === 401 && err.user) {
         return girisHataliYanit(res, err.user);
       }
+      if (err.status === 401) {
+        return res.status(401).json({
+          mesaj: 'E-posta veya şifre hatalı.',
+          message: 'E-posta veya şifre hatalı.',
+          kod: 'GIRIS_HATALI'
+        });
+      }
       throw err;
     }
-  } catch (err) {
-    console.error('[Demo] giris hatasi:', err.message);
-    res.status(err.status || 500).json({
-      mesaj: err.message || 'Giriş yapılamadı.',
-      kod: err.status === 401 ? 'GIRIS_HATALI' : 'SUNUCU'
-    });
+  } catch (error) {
+    console.error('[Demo] giris hatasi:', error.message);
+    return sunucuHataYanit(res, error, error.status || 500);
   }
 });
 
