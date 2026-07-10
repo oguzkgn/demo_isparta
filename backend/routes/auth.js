@@ -7,6 +7,7 @@ const memoryStore = require('../lib/memoryStore');
 const { kayitDogrula, girisDogrula } = require('../lib/validate');
 const { kodAta, sifreSifirlamaKoduAta, epostaDogrulandiMi, kodDogrula, dogrulamaTamamla } = require('../lib/emailDogrulama');
 const {
+  dogrulamaMailiGonder,
   dogrulamaMailiArkaPlanGonder,
   sifreSifirlamaMailiArkaPlanGonder,
   smtpYapilandirildiMi
@@ -90,20 +91,30 @@ async function kayitSonrasiDogrulama(res, { mongoId, email }) {
       if (user) {
         await dogrulamaKoduKaydet(user);
         if (smtpYapilandirildiMi()) {
-          dogrulamaMailiArkaPlanGonder(user);
-          mailGonderildi = true;
+          try {
+            await dogrulamaMailiGonder(user);
+            mailGonderildi = true;
+          } catch (mailErr) {
+            console.error('MAIL GONDERIM HATASI:', mailErr);
+            mailHata = mailErr.message || String(mailErr);
+          }
         } else {
-          mailHata = 'SMTP yapılandırılmamış';
+          mailHata = 'SMTP yapılandırması eksik (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM)';
         }
       }
     } else {
       memoryStore.kullaniciDogrulamaAta(email);
       const ham = memoryStore.kullaniciHamEmailIle(email);
       if (ham && smtpYapilandirildiMi()) {
-        dogrulamaMailiArkaPlanGonder(ham);
-        mailGonderildi = true;
+        try {
+          await dogrulamaMailiGonder(ham);
+          mailGonderildi = true;
+        } catch (mailErr) {
+          console.error('MAIL GONDERIM HATASI:', mailErr);
+          mailHata = mailErr.message || String(mailErr);
+        }
       } else if (!smtpYapilandirildiMi()) {
-        mailHata = 'SMTP yapılandırılmamış';
+        mailHata = 'SMTP yapılandırması eksik (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM)';
       }
     }
   } catch (err) {
@@ -583,31 +594,48 @@ router.post('/eposta-dogrula/yeniden', async (req, res) => {
     }
 
     let mailGonderildi = false;
+    let mailHata = null;
     try {
       if (bulunan.tip === 'mongo') {
         await dogrulamaKoduKaydet(bulunan.user);
         if (smtpYapilandirildiMi()) {
-          dogrulamaMailiArkaPlanGonder(bulunan.user);
-          mailGonderildi = true;
+          try {
+            await dogrulamaMailiGonder(bulunan.user);
+            mailGonderildi = true;
+          } catch (mailErr) {
+            console.error('MAIL GONDERIM HATASI:', mailErr);
+            mailHata = mailErr.message;
+          }
+        } else {
+          mailHata = 'SMTP yapılandırması eksik';
         }
       } else {
         memoryStore.kullaniciDogrulamaAta(eposta);
         const ham = memoryStore.kullaniciHamEmailIle(eposta);
         if (ham && smtpYapilandirildiMi()) {
-          dogrulamaMailiArkaPlanGonder(ham);
-          mailGonderildi = true;
+          try {
+            await dogrulamaMailiGonder(ham);
+            mailGonderildi = true;
+          } catch (mailErr) {
+            console.error('MAIL GONDERIM HATASI:', mailErr);
+            mailHata = mailErr.message;
+          }
+        } else if (!smtpYapilandirildiMi()) {
+          mailHata = 'SMTP yapılandırması eksik';
         }
       }
     } catch (err) {
       console.error('[Demo] yeniden gönder:', err.message);
+      mailHata = err.message;
     }
 
     return res.json({
       mesaj: mailGonderildi
         ? 'Doğrulama kodu e-postanıza gönderildi.'
-        : 'Kod oluşturuldu ancak e-posta gönderilemedi. SMTP ayarlarını kontrol edin.',
+        : (mailHata || 'Kod oluşturuldu ancak e-posta gönderilemedi. SMTP ayarlarını kontrol edin.'),
       email: eposta,
       mailGonderildi,
+      mailHata: mailHata || undefined,
       kod: mailGonderildi ? 'KOD_GONDERILDI' : 'MAIL_GONDERILEMEDI'
     });
   } catch (err) {

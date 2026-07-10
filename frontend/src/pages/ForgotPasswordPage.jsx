@@ -36,7 +36,7 @@ export default function ForgotPasswordPage() {
     setYukleniyor(true);
     try {
       const r = await forgotPassword(email);
-      setMesaj(r.mesaj || 'Doğrulama kodu gönderildi.');
+      setMesaj(r.mesaj || 'E-posta adresinize doğrulama kodu gönderildi.');
       setAdim(2);
     } catch (err) {
       setHata(apiHataMesaji(err, 'Kod gönderilemedi.'));
@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
             <form className={`auth-form ${portal === 'satici' ? 'seller-auth-form' : ''}`} onSubmit={kodGonder}>
               <h1>Şifremi Unuttum</h1>
               <p className="auth-sub">
-                Kayıtlı e-posta adresinize doğrulama kodu gönderilir (godswhip540@gmail.com üzerinden).
+                E-posta adresinize doğrulama kodu gönderildi.
               </p>
               {mesaj && <div className="auth-success">{mesaj}</div>}
               {hata && <div className="auth-error">{hata}</div>}

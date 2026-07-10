@@ -2,6 +2,8 @@ const nodemailer = require('nodemailer');
 
 let transporter = null;
 
+const SMTP_TIMEOUT_MS = 15000;
+
 function smtpKimlik() {
   return {
     user: String(process.env.SMTP_USER || '').trim(),
@@ -10,17 +12,15 @@ function smtpKimlik() {
 }
 
 function smtpYapilandirildiMi() {
+  const host = String(process.env.SMTP_HOST || '').trim();
+  const port = String(process.env.SMTP_PORT || '').trim();
+  const from = String(process.env.SMTP_FROM || '').trim();
   const { user, pass } = smtpKimlik();
-  return Boolean(user && pass);
+  return Boolean(host && port && user && pass && from);
 }
 
 function fromAdresi() {
-  const ham = (process.env.SMTP_FROM || process.env.SMTP_USER || '').trim();
-  const acik = ham.match(/<([^>]+@[^>]+)>/);
-  const duz = ham.match(/([^\s<>"']+@[^\s<>"']+)/);
-  const eposta = (acik?.[1] || duz?.[1] || ham.replace(/^<|>$/g, '')).trim();
-  if (eposta.includes('@')) return `demo Isparta <${eposta}>`;
-  return ham || smtpKimlik().user;
+  return String(process.env.SMTP_FROM || '').trim();
 }
 
 function uygulamaUrl() {
@@ -35,23 +35,30 @@ function transporterAl() {
   if (transporter) return transporter;
   if (!smtpYapilandirildiMi()) return null;
 
+  const port = Number(process.env.SMTP_PORT);
+
   transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: smtpKimlik()
+    host: String(process.env.SMTP_HOST).trim(),
+    port,
+    secure: true,
+    auth: smtpKimlik(),
+    connectionTimeout: SMTP_TIMEOUT_MS,
+    greetingTimeout: SMTP_TIMEOUT_MS,
+    socketTimeout: SMTP_TIMEOUT_MS
   });
 
-  console.log('[Demo] SMTP: Gmail servisi hazır (', smtpKimlik().user, ')');
+  console.log(`[Demo] SMTP hazir: ${process.env.SMTP_HOST}:${port} secure=true from=${fromAdresi()}`);
   return transporter;
 }
 
 /**
- * Temel e-posta gönderimi — try/catch + await sendMail
+ * Temel e-posta gönderimi — await sendMail + try/catch
  */
 async function epostaGonder({ to, konu, metin, html }) {
   try {
     const transport = transporterAl();
     if (!transport) {
-      const hata = new Error('E-posta servisi yapılandırılmamış (SMTP_USER / SMTP_PASS).');
+      const hata = new Error('SMTP yapılandırması eksik (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM).');
       hata.kod = 'SMTP_YOK';
       throw hata;
     }
@@ -64,11 +71,15 @@ async function epostaGonder({ to, konu, metin, html }) {
       html: html || metin.replace(/\n/g, '<br>')
     });
 
+    if (!sonuc?.messageId && !sonuc?.accepted?.length) {
+      throw new Error('sendMail tamamlandı ancak messageId alınamadı.');
+    }
+
     console.log(`[Demo] E-posta gönderildi: ${to} (messageId: ${sonuc.messageId || '—'})`);
     return { gonderildi: true, messageId: sonuc.messageId };
   } catch (error) {
     transporterSifirla();
-    console.error('❌ Mail Gönderim Hatası:', error);
+    console.error('MAIL GONDERIM HATASI:', error);
     throw error;
   }
 }
@@ -88,9 +99,7 @@ async function dogrulamaMailiGonder(kullanici) {
       `Doğrulama sayfası: ${link}`,
       '',
       'Kod 15 dakika geçerlidir. Bu kodu kimseyle paylaşmayın.',
-      'Bu isteği siz yapmadıysanız e-postayı yok sayın.',
-      '',
-      'Gönderen: demo Isparta (godswhip540@gmail.com)'
+      'Bu isteği siz yapmadıysanız e-postayı yok sayın.'
     ].join('\n');
 
     return await epostaGonder({
@@ -106,7 +115,7 @@ async function dogrulamaMailiGonder(kullanici) {
       `
     });
   } catch (error) {
-    console.error('❌ Mail Gönderim Hatası:', error);
+    console.error('MAIL GONDERIM HATASI:', error);
     throw error;
   }
 }
@@ -126,9 +135,7 @@ async function sifreSifirlamaMailiGonder(kullanici) {
       `Şifre sıfırlama sayfası: ${link}`,
       '',
       'Kod 15 dakika geçerlidir. Bu kodu kimseyle paylaşmayın.',
-      'Bu isteği siz yapmadıysanız e-postayı yok sayın.',
-      '',
-      'Gönderen: demo Isparta (godswhip540@gmail.com)'
+      'Bu isteği siz yapmadıysanız e-postayı yok sayın.'
     ].join('\n');
 
     return await epostaGonder({
@@ -144,17 +151,17 @@ async function sifreSifirlamaMailiGonder(kullanici) {
       `
     });
   } catch (error) {
-    console.error('❌ Mail Gönderim Hatası:', error);
+    console.error('MAIL GONDERIM HATASI:', error);
     throw error;
   }
 }
 
-/** HTTP yanıtını bekletmeden arka planda gönder */
+/** HTTP yanıtını bekletmeden arka planda gönder (giriş vb.) */
 function mailArkaPlanGonder(gonderFn, kullanici) {
   if (!kullanici?.email) return;
   setImmediate(() => {
     gonderFn(kullanici).catch((error) => {
-      console.error('❌ Mail Gönderim Hatası:', error);
+      console.error('MAIL GONDERIM HATASI:', error);
     });
   });
 }
