@@ -52,7 +52,7 @@ const SURUM = '1.2.0';
 
 const app = express();
 
-const port = Number(process.env.PORT) || 5002;
+const port = process.env.PORT || 5000;
 
 const distPath = path.join(__dirname, '../frontend/dist');
 
@@ -185,11 +185,9 @@ app.use('/api', (_req, res) => {
 
 
 app.listen(port, '0.0.0.0', () => {
-
-  console.log(`[Demo] Sunucu v${SURUM} 0.0.0.0:${port} portunda dinliyor ✓`);
-
+  console.log(`Sunucu ${port} portunda çalışıyor`);
+  console.log(`[Demo] Sunucu v${SURUM} 0.0.0.0:${port} üzerinde dinliyor ✓`);
   veritabaniBaglan();
-
 });
 
 
