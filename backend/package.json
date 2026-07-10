@@ -2,6 +2,7 @@
   "name": "demo-backend",
   "version": "1.0.0",
   "description": "Demo — Isparta yerel alışveriş API",
+  "author": "Oğuz Kağan ARISOY <177668475+oguzkgn@users.noreply.github.com>",
   "main": "app.js",
   "scripts": {
     "build": "npm install --prefix ../frontend && npm run build --prefix ../frontend",

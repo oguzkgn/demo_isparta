@@ -1,7 +1,14 @@
 {
   "name": "demo-isparta",
   "version": "1.2.0",
+  "description": "Isparta yerel alışveriş demo uygulaması",
   "private": true,
+  "author": "Oğuz Kağan ARISOY <177668475+oguzkgn@users.noreply.github.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oguzkgn/demo_isparta.git"
+  },
+  "homepage": "https://demo-isparta.vercel.app",
   "engines": { "node": ">=20" },
   "scripts": {
     "build": "npm install --prefix frontend --include=dev && npm run build --prefix frontend && npm install --prefix backend",

@@ -41,6 +41,7 @@ function transporterAl() {
     host: String(process.env.SMTP_HOST).trim(),
     port,
     secure: true,
+    family: 4, // Render IPv6 ENETUNREACH hatasini onlemek icin IPv4 zorunlu
     auth: smtpKimlik(),
     connectionTimeout: SMTP_TIMEOUT_MS,
     greetingTimeout: SMTP_TIMEOUT_MS,
